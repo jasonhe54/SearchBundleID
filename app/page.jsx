@@ -148,7 +148,7 @@ export default function Home() {
             </Button>
           </div>
 
-          <h1 className="text-2xl font-bold mb-2 text-center dark:text-white">Search BundleID</h1>
+          <h1 className="text-2xl font-bold mb-2 text-center dark:text-white">Bundle Search</h1>
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 text-center">
             Complete a field below to search for an App Store Bundle ID, or an App ID.
           </p>
@@ -184,7 +184,7 @@ export default function Home() {
               onChange={(e) => setBundleId(e.target.value)}
             />
 
-            <div className="flex items-center space-x-2 pt-2">
+            {/* <div className="flex items-center space-x-2 pt-2">
               <Checkbox
                 id="ratings"
                 checked={includeRatings}
@@ -194,7 +194,7 @@ export default function Home() {
               <Label htmlFor="ratings" className="cursor-pointer dark:text-white">
                 Include ratings
               </Label>
-            </div>
+            </div> */}
 
             <Button className="w-full mt-4" onClick={handleSearch} disabled={loading}>
               {loading ? "Searching..." : "Search"}
