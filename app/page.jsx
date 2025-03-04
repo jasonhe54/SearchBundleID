@@ -67,7 +67,7 @@ export default function Home() {
       .catch((error) => {
         console.error("Error:", error);
         setLoading(false);
-        toast.error("An error occurred while fetching data.", {
+        toast.error("An error occurred while fetching data. Please try again later.", {
           description: error.message,
           duration: 3500,
         });
