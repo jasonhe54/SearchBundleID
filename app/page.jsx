@@ -1,5 +1,8 @@
 "use client"
 
+import DataItem from "@/lib/DataItem"
+import { formatBytes, formatDate } from "@/lib/helpers"
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,11 +31,11 @@ export default function Home() {
   // Function to handle API request
   const handleSearch = () => {
     if (!appstoreId && !bundleId) {
-      alert("Please fill at either App ID or Bundle ID.")
-      return
+      toast.error("Please fill in either App ID or Bundle ID.");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
     fetch("/api/search", {
       method: "POST",
@@ -46,16 +49,27 @@ export default function Home() {
         includeRatings,
       }),
     })
-      .then((response) => response.json())
-      .then((data) => {
-        setResults(data)
-        setAppStoreUrl(data.url || "")
-        setLoading(false)
+      .then((response) => {
+        if (!response.ok) {
+          return response.json().then((errorData) => {
+            throw new Error(errorData.error || "Unknown error occurred");
+          });
+        }
+        return response.json();
+      })
+      .then((respData) => {
+        console.log("Response Data:", respData.data);
+        setResults(respData.data);
+        setAppStoreUrl(respData.data?.url || "");
+        setLoading(false);
       })
       .catch((error) => {
-        console.error("Error:", error)
-        setLoading(false)
-        alert("An error occurred while fetching data.")
+        console.error("Error:", error);
+        setLoading(false);
+        toast.error("An error occurred while fetching data.", {
+          description: error.message,
+          duration: 3500,
+        });
       })
   }
 
@@ -74,7 +88,7 @@ export default function Home() {
     navigator.clipboard
       .writeText(text)
       .then(() => {
-        toast("Copied to clipboard!", {
+        toast.success("Copied to clipboard!", {
           description: text,
           duration: 2000,
         })
@@ -100,12 +114,12 @@ export default function Home() {
 
   return (
     <div
-      className={`flex items-center justify-center min-h-screen p-4 ${isDarkMode ? "dark bg-gray-900" : "bg-gray-50"}`}
+      className={`flex items-center justify-center min-h-screen p-4 ${isDarkMode ? "dark bg-zinc-950" : "bg-gray-50"}`}
     >
       <div className="flex flex-col lg:flex-row items-center justify-center gap-6 relative w-full max-w-4xl mx-auto">
-        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 transition-colors duration-200">
+        <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-6 transition-colors duration-200">
           <div className="flex justify-end mb-4">
-            <Button variant="ghost" size="icon" onClick={toggleDarkMode} aria-label="Toggle dark mode">
+            <Button variant="outline" size="icon" onClick={toggleDarkMode} aria-label="Toggle dark mode">
               {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
           </div>
@@ -116,41 +130,33 @@ export default function Home() {
           </p>
 
           <div className="space-y-4">
-            {/* <div className="relative">
-              <Input
-                type="text"
-                placeholder="App Store URL"
-                className="pr-10 dark:bg-gray-700 dark:text-white dark:border-gray-600 w:80"
-                value={appStoreUrl}
-                onChange={(e) => setAppStoreUrl(e.target.value)}
-                disabled
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-2 top-1/2 -translate-y-1/2"
-                onClick={() => navigator.clipboard.writeText(appStoreUrl || "")}
-              >
-                <Copy className="h-4 w-4" />
-                <span className="sr-only">Copy</span>
-              </Button>
-            </div> */}
-
             <Input
               type="text"
               placeholder="Enter App ID"
-              className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+              className="dark:bg-zinc-700 dark:text-white dark:border-gray-600"
               autoCapitalize="off"
               value={appstoreId}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  handleSearch()
+                }
+              }}
               onChange={(e) => setAppStoreId(e.target.value)}
             />
 
             <Input
               type="text"
               placeholder="Enter Bundle ID"
-              className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+              className="dark:bg-zinc-700 dark:text-white dark:border-gray-600"
               autoCapitalize="off"
               value={bundleId}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  handleSearch()
+                }
+              }}
               onChange={(e) => setBundleId(e.target.value)}
             />
 
@@ -172,7 +178,7 @@ export default function Home() {
           </div>
 
           <div className="mt-8 text-xs text-gray-500 dark:text-gray-400 flex gap-2 justify-center">
-            <a href="#" className="hover:underline">
+            <a href="https://github.com/jasonhe54/SearchBundleID" target="_blank" className="hover:underline">
               github
             </a>
           </div>
@@ -181,7 +187,7 @@ export default function Home() {
         <AnimatePresence>
           {results && (
             <motion.div
-              className="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 transition-colors duration-200"
+              className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-6 transition-colors duration-200"
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 50 }}
@@ -292,45 +298,13 @@ export default function Home() {
                         {results.description}
                       </div>
                       {/* <hr/> */}
-                      <Button variant="secondary" className={"w-full"} onClick={() => {
-                        toast("Event has been created.")
+                      <Button variant="outline" className={"w-full"} onClick={() => {
                         copyToClipboard(results.description)
-                        }}>Copy Description</Button>
+                      }}>Copy Description</Button>
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
               )}
-
-              {/* {results.description && (
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-2">
-                    <h2 className="text-lg font-semibold dark:text-white">Description</h2>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => copyToClipboard(results.description)}
-                      className="h-8 w-8"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">{results.description}</p>
-                </div>
-              )} */}
-
-              {/* {results.url && (
-                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <a
-                    href={results.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    View on App Store
-                  </a>
-                </div>
-              )} */}
             </motion.div>
           )}
         </AnimatePresence>
@@ -338,49 +312,3 @@ export default function Home() {
     </div>
   )
 }
-
-// Helper component for displaying data items
-function DataItem({ label, value, copyable = false, onCopy }) {
-  return (
-    <div className="flex justify-between items-center">
-      <div>
-        <span className="text-xs text-gray-500 dark:text-gray-400 block">{label}</span>
-        <span className="text-sm font-medium dark:text-white">{value || "N/A"}</span>
-      </div>
-      {copyable && value && (
-        <Button variant="ghost" size="icon" onClick={onCopy} className="h-8 w-8">
-          <Copy className="h-4 w-4" />
-        </Button>
-      )}
-    </div>
-  )
-}
-
-// Helper function to format bytes
-function formatBytes(bytes, decimals = 2) {
-  if (!bytes) return "Unknown"
-  bytes = Number.parseInt(bytes)
-  if (bytes === 0) return "0 Bytes"
-
-  const k = 1024
-  const dm = decimals < 0 ? 0 : decimals
-  const sizes = ["Bytes", "KB", "MB", "GB", "TB"]
-
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-
-  return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i]
-}
-
-// Helper function to format date
-function formatDate(dateString) {
-  if (!dateString) return "Unknown"
-  const date = new Date(dateString)
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
-}
-
