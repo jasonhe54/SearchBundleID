@@ -103,14 +103,28 @@ export default function Home() {
     setIsDarkMode(!isDarkMode)
   }
 
-  // Apply dark mode class to document
+  // set theme in localStorage upon page load
+  useEffect(() => {
+    const storedTheme = localStorage.getItem("theme");
+    if (storedTheme === "dark") {
+      setIsDarkMode(true);
+    } else if (storedTheme === "light") {
+      setIsDarkMode(false);
+    } else {
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      setIsDarkMode(prefersDark);
+    }
+  }, []);
+  
+  // handles applying classes to document and updates localStorage when state is toggled
   useEffect(() => {
     if (isDarkMode) {
-      document.documentElement.classList.add("dark")
+      document.documentElement.classList.add("dark");
     } else {
-      document.documentElement.classList.remove("dark")
+      document.documentElement.classList.remove("dark");
     }
-  }, [isDarkMode])
+    localStorage.setItem("theme", isDarkMode ? "dark" : "light");
+  }, [isDarkMode]);
 
   return (
     <div
