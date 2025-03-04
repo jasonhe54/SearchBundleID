@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import { Moon, Sun, Copy, ExternalLink } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
+import GHIcon from "@/components/ui/GHIcon"
 
 export default function Home() {
   // Input state tracking
@@ -132,7 +133,16 @@ export default function Home() {
     >
       <div className="flex flex-col lg:flex-row items-center justify-center gap-6 relative w-full max-w-4xl mx-auto">
         <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-6 transition-colors duration-200">
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end mb-4 gap-2">
+            <a
+              href="https://github.com/jasonhe54/SearchBundleID"
+              target="_blank"
+            >
+              <Button variant="outline" size="icon" aria-label="GitHub Repository">
+                <GHIcon className="h-5 w-5 text-black dark:text-white" />
+              </Button>
+            </a>
+
             <Button variant="outline" size="icon" onClick={toggleDarkMode} aria-label="Toggle dark mode">
               {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
@@ -189,12 +199,6 @@ export default function Home() {
             <Button className="w-full mt-4" onClick={handleSearch} disabled={loading}>
               {loading ? "Searching..." : "Search"}
             </Button>
-          </div>
-
-          <div className="mt-8 text-xs text-gray-500 dark:text-gray-400 flex gap-2 justify-center">
-            <a href="https://github.com/jasonhe54/SearchBundleID" target="_blank" className="hover:underline">
-              github
-            </a>
           </div>
         </div>
 
