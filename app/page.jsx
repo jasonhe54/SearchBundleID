@@ -2,7 +2,7 @@
 
 import DataItem from "@/lib/DataItem"
 import { formatBytes, formatDate, validateInput } from "@/lib/helpers"
-import { fetchByAppIdOrBundleId, handleGenericSearch } from "@/lib/fetchData"
+import { fetchByAppIdOrBundleId, handleGenericSearch, fetchByDeveloperId } from "@/lib/fetchData"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -22,9 +22,17 @@ export default function Home() {
   const [developerId, setDeveloperId] = useState("")
   const [includeRatings, setIncludeRatings] = useState(false)
 
+  // Track if user came from developer apps list
+  const [fromDeveloperList, setFromDeveloperList] = useState(false)
+
+  // View state - controls which view is shown
+  const [viewMode, setViewMode] = useState("none") // "none", "single", "list"
+
   // Results state
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [developerApps, setDeveloperApps] = useState(null)
+  const [cachedDeveloperApps, setCachedDeveloperApps] = useState(null)
 
   // Dark mode state
   const [isDarkMode, setIsDarkMode] = useState(false)
@@ -33,31 +41,29 @@ export default function Home() {
   const handleSearch = async () => {
     console.log("Called from handleSearch")
     setLoading(true)
-    let res = await handleGenericSearch(
-      [
-        {
-          appstoreId: {
-            id: appstoreId,
-            includeRatings: includeRatings,
-          }
+    const res = await handleGenericSearch([
+      {
+        appstoreId: {
+          id: appstoreId,
+          includeRatings: includeRatings,
         },
-        {
-          bundleId: {
-            id: bundleId,
-            includeRatings: includeRatings
-          }
+      },
+      {
+        bundleId: {
+          id: bundleId,
+          includeRatings: includeRatings,
         },
-        {
-          developerId: {
-            id: developerId
-          }
+      },
+      {
+        developerId: {
+          id: developerId,
         },
-      ]
-    )
+      },
+    ])
     console.log(res)
     setResults(res)
+    setViewMode("single")
     setLoading(false)
-
   }
 
   // Function to clear results
@@ -69,6 +75,9 @@ export default function Home() {
     setDeveloperId("")
     setIncludeRatings(false)
     setLoading(false)
+    setFromDeveloperList(false)
+    setViewMode("none")
+    setCachedDeveloperApps(null)
   }
 
   // Function to copy text to clipboard
@@ -93,26 +102,26 @@ export default function Home() {
 
   // set theme in localStorage upon page load
   useEffect(() => {
-    const storedTheme = localStorage.getItem("theme");
+    const storedTheme = localStorage.getItem("theme")
     if (storedTheme === "dark") {
-      setIsDarkMode(true);
+      setIsDarkMode(true)
     } else if (storedTheme === "light") {
-      setIsDarkMode(false);
+      setIsDarkMode(false)
     } else {
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      setIsDarkMode(prefersDark);
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+      setIsDarkMode(prefersDark)
     }
-  }, []);
+  }, [])
 
   // handles applying classes to document and updates localStorage when state is toggled
   useEffect(() => {
     if (isDarkMode) {
-      document.documentElement.classList.add("dark");
+      document.documentElement.classList.add("dark")
     } else {
-      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.remove("dark")
     }
-    localStorage.setItem("theme", isDarkMode ? "dark" : "light");
-  }, [isDarkMode]);
+    localStorage.setItem("theme", isDarkMode ? "dark" : "light")
+  }, [isDarkMode])
 
   return (
     <div
@@ -121,10 +130,7 @@ export default function Home() {
       <div className="flex flex-col lg:flex-row items-center justify-center gap-6 relative w-full mx-auto">
         <div className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-6 transition-colors duration-200">
           <div className="flex justify-end mb-4 gap-2">
-            <a
-              href="https://github.com/jasonhe54/SearchBundleID"
-              target="_blank"
-            >
+            <a href="https://github.com/jasonhe54/SearchBundleID" target="_blank" rel="noreferrer">
               <Button variant="outline" size="icon" aria-label="GitHub Repository">
                 <GHIcon className="h-5 w-5 text-black dark:text-white" />
               </Button>
@@ -147,7 +153,7 @@ export default function Home() {
               className="dark:bg-zinc-700 dark:text-white dark:border-gray-600"
               autoCapitalize="off"
               value={developerId}
-              onKeyDown={(e) => {
+              onKeyDown={async (e) => {
                 if (e.key === "Enter") {
                   e.preventDefault()
                   if (!validateInput("developerId", developerId)) {
@@ -157,7 +163,13 @@ export default function Home() {
                     })
                     return
                   }
-                  handleSearch()
+                  setLoading(true)
+                  const respData = await fetchByDeveloperId(developerId)
+                  console.log("Response Data:", respData)
+                  setDeveloperApps(respData)
+                  setCachedDeveloperApps(respData)
+                  setViewMode("list")
+                  setLoading(false)
                 }
               }}
               onChange={(e) => setDeveloperId(e.target.value)}
@@ -179,11 +191,13 @@ export default function Home() {
                     })
                     return
                   }
-                  setLoading(true);
-                  let respData = await fetchByAppIdOrBundleId("appstoreId", appstoreId, false);
-                  console.log("Response Data:", respData);
-                  setResults(respData);
-                  setLoading(false);
+                  setLoading(true)
+                  const respData = await fetchByAppIdOrBundleId("appstoreId", appstoreId, false)
+                  console.log("Response Data:", respData)
+                  setResults(respData)
+                  setViewMode("single")
+                  setFromDeveloperList(false)
+                  setLoading(false)
                 }
               }}
               onChange={(e) => setAppStoreId(e.target.value)}
@@ -205,11 +219,13 @@ export default function Home() {
                     })
                     return
                   }
-                  setLoading(true);
-                  let respData = await fetchByAppIdOrBundleId("bundleId", bundleId, false);
-                  console.log("Response Data:", respData);
-                  setResults(respData);
-                  setLoading(false);
+                  setLoading(true)
+                  const respData = await fetchByAppIdOrBundleId("bundleId", bundleId, false)
+                  console.log("Response Data:", respData)
+                  setResults(respData)
+                  setViewMode("single")
+                  setFromDeveloperList(false)
+                  setLoading(false)
                 }
               }}
               onChange={(e) => setBundleId(e.target.value)}
@@ -222,7 +238,7 @@ export default function Home() {
         </div>
 
         <AnimatePresence>
-          {results && (
+          {viewMode === "single" && results && (
             <motion.div
               className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-6 transition-colors duration-200"
               initial={{ opacity: 0, x: 50 }}
@@ -232,9 +248,29 @@ export default function Home() {
             >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold dark:text-white">Results</h2>
-                <Button variant="outline" size="sm" onClick={clearResults} className="text-gray-600 dark:text-gray-300">
-                  Clear
-                </Button>
+                <div className="flex gap-2">
+                  {fromDeveloperList && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setViewMode("list")
+                        setDeveloperApps(cachedDeveloperApps)
+                      }}
+                      className="text-gray-600 dark:text-gray-300"
+                    >
+                      Back to List
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearResults}
+                    className="text-gray-600 dark:text-gray-300"
+                  >
+                    Clear
+                  </Button>
+                </div>
               </div>
 
               <div className="flex items-start gap-4 mb-6">
@@ -293,7 +329,12 @@ export default function Home() {
                   onCopy={() => copyToClipboard(results.appId)}
                 />
                 <DataItem label="App ID" value={results.id} copyable onCopy={() => copyToClipboard(results.id)} />
-                <DataItem label="Developer ID" value={results.developerId} copyable onCopy={() => copyToClipboard(results.developerId)} />
+                <DataItem
+                  label="Developer ID"
+                  value={results.developerId}
+                  copyable
+                  onCopy={() => copyToClipboard(results.developerId)}
+                />
                 <DataItem
                   label="Version"
                   value={results.version}
@@ -337,12 +378,16 @@ export default function Home() {
                   <AccordionItem value="item-1">
                     <AccordionTrigger>Description</AccordionTrigger>
                     <AccordionContent className={"text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line"}>
-                      <div className="pb-4">
-                        {results.description}
-                      </div>
-                      <Button variant="outline" className={"w-full"} onClick={() => {
-                        copyToClipboard(results.description)
-                      }}>Copy Description</Button>
+                      <div className="pb-4">{results.description}</div>
+                      <Button
+                        variant="outline"
+                        className={"w-full"}
+                        onClick={() => {
+                          copyToClipboard(results.description)
+                        }}
+                      >
+                        Copy Description
+                      </Button>
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
@@ -350,7 +395,97 @@ export default function Home() {
             </motion.div>
           )}
         </AnimatePresence>
+        <AnimatePresence>
+          {viewMode === "list" && developerApps && (
+            <motion.div
+              className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-6 transition-colors duration-200"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold dark:text-white">Developer Apps ({developerApps.length})</h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setDeveloperApps(null)
+                    setCachedDeveloperApps(null)
+                    setDeveloperId("")
+                    setViewMode("none")
+                  }}
+                  className="text-gray-600 dark:text-gray-300"
+                >
+                  Clear
+                </Button>
+              </div>
+
+              <div className="max-h-[600px] overflow-y-auto pr-2">
+                <div className="space-y-6">
+                  {developerApps.map((app) => (
+                    <div key={app.id} className="border-b dark:border-gray-700 pb-4 last:border-0 last:pb-0">
+                      <div className="flex items-start gap-4 mb-2">
+                        {app.icon && (
+                          <div className="flex-shrink-0">
+                            <Image
+                              src={app.icon || "/placeholder.svg"}
+                              alt={app.title || "App icon"}
+                              width={60}
+                              height={60}
+                              className="rounded-xl"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-grow">
+                          <div className="flex justify-between items-start">
+                            <h3 className="text-lg font-semibold dark:text-white">{app.title}</h3>
+                            <div className="ml-auto flex gap-0">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => window.open(app.url, "_blank")}
+                                className="h-8 w-8"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                            <span className="truncate max-w-[200px]">{app.appId}</span>
+                            {app.free !== undefined && (
+                              <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded-full text-xs">
+                                {app.free ? "Free" : `$${app.price}`}
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setResults(app)
+                                setFromDeveloperList(true)
+                                setViewMode("single")
+                              }}
+                            >
+                              View Details
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => copyToClipboard(app.appId)}>
+                              Copy Bundle ID
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )
 }
+
