@@ -2,14 +2,14 @@
 
 import DataItem from "@/lib/DataItem"
 import { formatBytes, formatDate, validateInput } from "@/lib/helpers"
-import { fetchByAppIdOrBundleId, fetchByDeveloperId } from "@/lib/fetchData"
+import { fetchByAppIdOrBundleId, handleGenericSearch, fetchByDeveloperId } from "@/lib/fetchData"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { toast } from "sonner"
-import { Moon, Sun, ExternalLink, ArrowRight } from "lucide-react"
+import { Moon, Sun, ExternalLink, ArrowRight } from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import GHIcon from "@/components/ui/GHIcon"
@@ -21,10 +21,13 @@ export default function Home() {
   const [bundleId, setBundleId] = useState("")
   const [developerId, setDeveloperId] = useState("")
   const [includeRatings, setIncludeRatings] = useState(false)
+  
+  // Track which input field is active
+  const [activeInput, setActiveInput] = useState(null) // null, "developerId", "appstoreId", "bundleId"
 
   // Track if user came from developer apps list
   const [fromDeveloperList, setFromDeveloperList] = useState(false)
-
+  
   // View state - controls which view is shown
   const [viewMode, setViewMode] = useState("none") // "none", "single", "list"
 
@@ -49,6 +52,7 @@ export default function Home() {
     setFromDeveloperList(false)
     setViewMode("none")
     setCachedDeveloperApps(null)
+    setActiveInput(null)
   }
 
   // Function to copy text to clipboard
@@ -148,6 +152,37 @@ export default function Home() {
     localStorage.setItem("theme", isDarkMode ? "dark" : "light")
   }, [isDarkMode])
 
+  // Handle input changes and set active input
+  const handleDeveloperIdChange = (e) => {
+    const value = e.target.value
+    setDeveloperId(value)
+    if (value) {
+      setActiveInput("developerId")
+    } else if (activeInput === "developerId") {
+      setActiveInput(null)
+    }
+  }
+
+  const handleAppIdChange = (e) => {
+    const value = e.target.value
+    setAppStoreId(value)
+    if (value) {
+      setActiveInput("appstoreId")
+    } else if (activeInput === "appstoreId") {
+      setActiveInput(null)
+    }
+  }
+
+  const handleBundleIdChange = (e) => {
+    const value = e.target.value
+    setBundleId(value)
+    if (value) {
+      setActiveInput("bundleId")
+    } else if (activeInput === "bundleId") {
+      setActiveInput(null)
+    }
+  }
+
   return (
     <div
       className={`flex items-center justify-center min-h-screen p-4 ${isDarkMode ? "dark bg-zinc-950" : "bg-gray-50"}`}
@@ -186,15 +221,15 @@ export default function Home() {
                       searchByDeveloperId()
                     }
                   }}
-                  onChange={(e) => setDeveloperId(e.target.value)}
-                  disabled={loading}
+                  onChange={handleDeveloperIdChange}
+                  disabled={loading || (activeInput !== null && activeInput !== "developerId")}
                 />
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={searchByDeveloperId}
-                disabled={loading}
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={searchByDeveloperId} 
+                disabled={loading || !developerId}
                 aria-label="Search by Developer ID"
               >
                 <ArrowRight className="h-4 w-4" />
@@ -216,15 +251,15 @@ export default function Home() {
                       searchByAppId()
                     }
                   }}
-                  onChange={(e) => setAppStoreId(e.target.value)}
-                  disabled={loading}
+                  onChange={handleAppIdChange}
+                  disabled={loading || (activeInput !== null && activeInput !== "appstoreId")}
                 />
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={searchByAppId}
-                disabled={loading}
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={searchByAppId} 
+                disabled={loading || !appstoreId}
                 aria-label="Search by App ID"
               >
                 <ArrowRight className="h-4 w-4" />
@@ -245,15 +280,15 @@ export default function Home() {
                       searchByBundleId()
                     }
                   }}
-                  onChange={(e) => setBundleId(e.target.value)}
-                  disabled={loading}
+                  onChange={handleBundleIdChange}
+                  disabled={loading || (activeInput !== null && activeInput !== "bundleId")}
                 />
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={searchByBundleId}
-                disabled={loading}
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={searchByBundleId} 
+                disabled={loading || !bundleId}
                 aria-label="Search by Bundle ID"
               >
                 <ArrowRight className="h-4 w-4" />
@@ -275,24 +310,19 @@ export default function Home() {
                 <h2 className="text-xl font-bold dark:text-white">Results</h2>
                 <div className="flex gap-2">
                   {fromDeveloperList && (
-                    <Button
-                      variant="outline"
-                      size="sm"
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
                       onClick={() => {
-                        setViewMode("list")
-                        setDeveloperApps(cachedDeveloperApps)
-                      }}
+                        setViewMode("list");
+                        setDeveloperApps(cachedDeveloperApps);
+                      }} 
                       className="text-gray-600 dark:text-gray-300"
                     >
                       Back to List
                     </Button>
                   )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={clearResults}
-                    className="text-gray-600 dark:text-gray-300"
-                  >
+                  <Button variant="outline" size="sm" onClick={clearResults} className="text-gray-600 dark:text-gray-300">
                     Clear
                   </Button>
                 </div>
@@ -439,6 +469,7 @@ export default function Home() {
                     setCachedDeveloperApps(null)
                     setDeveloperId("")
                     setViewMode("none")
+                    setActiveInput(null)
                   }}
                   className="text-gray-600 dark:text-gray-300"
                 >
@@ -489,9 +520,9 @@ export default function Home() {
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                setResults(app)
-                                setFromDeveloperList(true)
-                                setViewMode("single")
+                                setResults(app);
+                                setFromDeveloperList(true);
+                                setViewMode("single");
                               }}
                             >
                               View Details
@@ -513,4 +544,3 @@ export default function Home() {
     </div>
   )
 }
-
