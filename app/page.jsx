@@ -261,7 +261,12 @@ export default function Home() {
               </div>
 
               <div className="space-y-4 mb-4">
-                <DataItem label="App Store URL" value={results.url} copyable onCopy={() => copyToClipboard(results.url)} />
+                <DataItem 
+                  label="App Store URL" 
+                  value={results.url} 
+                  copyable 
+                  onCopy={() => copyToClipboard(results.url)} 
+                />
                 <DataItem
                   label="Bundle ID"
                   value={results.appId}
