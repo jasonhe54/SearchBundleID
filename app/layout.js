@@ -36,12 +36,16 @@ export const metadata = {
     type: 'website',
   },
 };
- 
+
 
 // TOAST DOCS: https://sonner.emilkowal.ski
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      {/* <script
+        crossOrigin="anonymous"
+        src="//unpkg.com/react-scan/dist/auto.global.js"
+      /> */}
       <head />
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <main>{children}</main>

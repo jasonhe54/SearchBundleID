@@ -1,8 +1,19 @@
-const sAPI = require("app-store-scraper");
+const maxCachedAge = 1000*60*5; // 5 minutes - also default value
+const sAPI = require("app-store-scraper").memoized({ maxAge: maxCachedAge });
+
+/**
+ * ENDPOINT DOCS
+ * 
+ * @REQUIRED appstoreId || bundleId
+ * 
+ * @BodyParam [KEY]: appstoreId,             [VALUE]: string
+ * @BodyParam [KEY]: bundleId,               [VALUE]: string
+ * @BodyParam [KEY]: includeRatings,         [VALUE]: boolean [OPTIONAL]
+ */
 
 export async function POST(request) {
     try {
-        const { appStoreUrl, appstoreId, bundleId, includeRatings } = await request.json();
+        const { appStoreUrl = null, appstoreId = null, bundleId = null, includeRatings = null } = await request.json();
 
         if (!appstoreId && !bundleId) {
             return new Response(JSON.stringify({ error: "Either appId or bundleId is required" }), {

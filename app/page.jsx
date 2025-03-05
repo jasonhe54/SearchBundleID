@@ -1,16 +1,15 @@
 "use client"
 
 import DataItem from "@/lib/DataItem"
-import { formatBytes, formatDate } from "@/lib/helpers"
+import { formatBytes, formatDate, validateInput } from "@/lib/helpers"
+import { fetchByAppIdOrBundleId, handleGenericSearch } from "@/lib/fetchData"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { toast } from "sonner"
-import { Moon, Sun, Copy, ExternalLink } from "lucide-react"
+import { Moon, Sun, ExternalLink } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import GHIcon from "@/components/ui/GHIcon"
@@ -20,6 +19,7 @@ export default function Home() {
   const [appStoreUrl, setAppStoreUrl] = useState("")
   const [appstoreId, setAppStoreId] = useState("")
   const [bundleId, setBundleId] = useState("")
+  const [developerId, setDeveloperId] = useState("")
   const [includeRatings, setIncludeRatings] = useState(false)
 
   // Results state
@@ -30,48 +30,34 @@ export default function Home() {
   const [isDarkMode, setIsDarkMode] = useState(false)
 
   // Function to handle API request
-  const handleSearch = () => {
-    if (!appstoreId && !bundleId) {
-      toast.error("Please fill in either App ID or Bundle ID.");
-      return;
-    }
+  const handleSearch = async () => {
+    console.log("Called from handleSearch")
+    setLoading(true)
+    let res = await handleGenericSearch(
+      [
+        {
+          appstoreId: {
+            id: appstoreId,
+            includeRatings: includeRatings,
+          }
+        },
+        {
+          bundleId: {
+            id: bundleId,
+            includeRatings: includeRatings
+          }
+        },
+        {
+          developerId: {
+            id: developerId
+          }
+        },
+      ]
+    )
+    console.log(res)
+    setResults(res)
+    setLoading(false)
 
-    setLoading(true);
-
-    fetch("/api/search", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        appStoreUrl,
-        appstoreId,
-        bundleId,
-        includeRatings,
-      }),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          return response.json().then((errorData) => {
-            throw new Error(errorData.error || "Unknown error occurred");
-          });
-        }
-        return response.json();
-      })
-      .then((respData) => {
-        console.log("Response Data:", respData.data);
-        setResults(respData.data);
-        setAppStoreUrl(respData.data?.url || "");
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        setLoading(false);
-        toast.error("An error occurred while fetching data. Please try again later.", {
-          description: error.message,
-          duration: 3500,
-        });
-      })
   }
 
   // Function to clear results
@@ -80,6 +66,7 @@ export default function Home() {
     setAppStoreUrl("")
     setAppStoreId("")
     setBundleId("")
+    setDeveloperId("")
     setIncludeRatings(false)
     setLoading(false)
   }
@@ -116,7 +103,7 @@ export default function Home() {
       setIsDarkMode(prefersDark);
     }
   }, []);
-  
+
   // handles applying classes to document and updates localStorage when state is toggled
   useEffect(() => {
     if (isDarkMode) {
@@ -156,14 +143,47 @@ export default function Home() {
           <div className="space-y-4">
             <Input
               type="text"
-              placeholder="Enter App ID"
+              placeholder="Enter Developer ID"
               className="dark:bg-zinc-700 dark:text-white dark:border-gray-600"
               autoCapitalize="off"
-              value={appstoreId}
+              value={developerId}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault()
+                  if (!validateInput("developerId", developerId)) {
+                    toast.error("Error Processing Input", {
+                      description: "Invalid Developer ID",
+                      duration: 3500,
+                    })
+                    return
+                  }
                   handleSearch()
+                }
+              }}
+              onChange={(e) => setDeveloperId(e.target.value)}
+            />
+            <Input
+              type="text"
+              placeholder="Enter App ID"
+              className="dark:bg-zinc-700 dark:text-white dark:border-gray-600"
+              autoCapitalize="off"
+              inputMode="numeric"
+              value={appstoreId}
+              onKeyDown={async (e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  if (!validateInput("appstoreId", appstoreId)) {
+                    toast.error("Error Processing Input", {
+                      description: "Invalid App ID",
+                      duration: 3500,
+                    })
+                    return
+                  }
+                  setLoading(true);
+                  let respData = await fetchByAppIdOrBundleId("appstoreId", appstoreId, false);
+                  console.log("Response Data:", respData);
+                  setResults(respData);
+                  setLoading(false);
                 }
               }}
               onChange={(e) => setAppStoreId(e.target.value)}
@@ -175,26 +195,25 @@ export default function Home() {
               className="dark:bg-zinc-700 dark:text-white dark:border-gray-600"
               autoCapitalize="off"
               value={bundleId}
-              onKeyDown={(e) => {
+              onKeyDown={async (e) => {
                 if (e.key === "Enter") {
                   e.preventDefault()
-                  handleSearch()
+                  if (!validateInput("bundleId", bundleId)) {
+                    toast.error("Error Processing Input", {
+                      description: "Invalid Bundle ID",
+                      duration: 3500,
+                    })
+                    return
+                  }
+                  setLoading(true);
+                  let respData = await fetchByAppIdOrBundleId("bundleId", bundleId, false);
+                  console.log("Response Data:", respData);
+                  setResults(respData);
+                  setLoading(false);
                 }
               }}
               onChange={(e) => setBundleId(e.target.value)}
             />
-
-            {/* <div className="flex items-center space-x-2 pt-2">
-              <Checkbox
-                id="ratings"
-                checked={includeRatings}
-                onCheckedChange={(checked) => setIncludeRatings(checked)}
-                className="dark:border-gray-500"
-              />
-              <Label htmlFor="ratings" className="cursor-pointer dark:text-white">
-                Include ratings
-              </Label>
-            </div> */}
 
             <Button className="w-full mt-4" onClick={handleSearch} disabled={loading}>
               {loading ? "Searching..." : "Search"}
@@ -261,11 +280,11 @@ export default function Home() {
               </div>
 
               <div className="space-y-4 mb-4">
-                <DataItem 
-                  label="App Store URL" 
-                  value={results.url} 
-                  copyable 
-                  onCopy={() => copyToClipboard(results.url)} 
+                <DataItem
+                  label="App Store URL"
+                  value={results.url}
+                  copyable
+                  onCopy={() => copyToClipboard(results.url)}
                 />
                 <DataItem
                   label="Bundle ID"
@@ -274,6 +293,7 @@ export default function Home() {
                   onCopy={() => copyToClipboard(results.appId)}
                 />
                 <DataItem label="App ID" value={results.id} copyable onCopy={() => copyToClipboard(results.id)} />
+                <DataItem label="Developer ID" value={results.developerId} copyable onCopy={() => copyToClipboard(results.developerId)} />
                 <DataItem
                   label="Version"
                   value={results.version}
@@ -320,7 +340,6 @@ export default function Home() {
                       <div className="pb-4">
                         {results.description}
                       </div>
-                      {/* <hr/> */}
                       <Button variant="outline" className={"w-full"} onClick={() => {
                         copyToClipboard(results.description)
                       }}>Copy Description</Button>
