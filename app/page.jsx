@@ -2,14 +2,14 @@
 
 import DataItem from "@/lib/DataItem"
 import { formatBytes, formatDate, validateInput } from "@/lib/helpers"
-import { fetchByAppIdOrBundleId, handleGenericSearch, fetchByDeveloperId } from "@/lib/fetchData"
+import { fetchByAppIdOrBundleId, fetchByDeveloperId } from "@/lib/fetchData"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { toast } from "sonner"
-import { Moon, Sun, ExternalLink } from "lucide-react"
+import { Moon, Sun, ExternalLink, ArrowRight } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import GHIcon from "@/components/ui/GHIcon"
@@ -36,35 +36,6 @@ export default function Home() {
 
   // Dark mode state
   const [isDarkMode, setIsDarkMode] = useState(false)
-
-  // Function to handle API request
-  const handleSearch = async () => {
-    console.log("Called from handleSearch")
-    setLoading(true)
-    const res = await handleGenericSearch([
-      {
-        appstoreId: {
-          id: appstoreId,
-          includeRatings: includeRatings,
-        },
-      },
-      {
-        bundleId: {
-          id: bundleId,
-          includeRatings: includeRatings,
-        },
-      },
-      {
-        developerId: {
-          id: developerId,
-        },
-      },
-    ])
-    console.log(res)
-    setResults(res)
-    setViewMode("single")
-    setLoading(false)
-  }
 
   // Function to clear results
   const clearResults = () => {
@@ -93,6 +64,60 @@ export default function Home() {
       .catch((err) => {
         console.error("Failed to copy: ", err)
       })
+  }
+
+  // Search by developer ID
+  const searchByDeveloperId = async () => {
+    if (!validateInput("developerId", developerId)) {
+      toast.error("Error Processing Input", {
+        description: "Invalid Developer ID",
+        duration: 3500,
+      })
+      return
+    }
+    setLoading(true)
+    const respData = await fetchByDeveloperId(developerId)
+    console.log("Response Data:", respData)
+    setDeveloperApps(respData)
+    setCachedDeveloperApps(respData)
+    setViewMode("list")
+    setLoading(false)
+  }
+
+  // Search by App ID
+  const searchByAppId = async () => {
+    if (!validateInput("appstoreId", appstoreId)) {
+      toast.error("Error Processing Input", {
+        description: "Invalid App ID",
+        duration: 3500,
+      })
+      return
+    }
+    setLoading(true)
+    const respData = await fetchByAppIdOrBundleId("appstoreId", appstoreId, false)
+    console.log("Response Data:", respData)
+    setResults(respData)
+    setViewMode("single")
+    setFromDeveloperList(false)
+    setLoading(false)
+  }
+
+  // Search by Bundle ID
+  const searchByBundleId = async () => {
+    if (!validateInput("bundleId", bundleId)) {
+      toast.error("Error Processing Input", {
+        description: "Invalid Bundle ID",
+        duration: 3500,
+      })
+      return
+    }
+    setLoading(true)
+    const respData = await fetchByAppIdOrBundleId("bundleId", bundleId, false)
+    console.log("Response Data:", respData)
+    setResults(respData)
+    setViewMode("single")
+    setFromDeveloperList(false)
+    setLoading(false)
   }
 
   // Toggle dark mode
@@ -147,93 +172,93 @@ export default function Home() {
           </p>
 
           <div className="space-y-4">
-            <Input
-              type="text"
-              placeholder="Enter Developer ID"
-              className="dark:bg-zinc-700 dark:text-white dark:border-gray-600"
-              autoCapitalize="off"
-              value={developerId}
-              onKeyDown={async (e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault()
-                  if (!validateInput("developerId", developerId)) {
-                    toast.error("Error Processing Input", {
-                      description: "Invalid Developer ID",
-                      duration: 3500,
-                    })
-                    return
-                  }
-                  setLoading(true)
-                  const respData = await fetchByDeveloperId(developerId)
-                  console.log("Response Data:", respData)
-                  setDeveloperApps(respData)
-                  setCachedDeveloperApps(respData)
-                  setViewMode("list")
-                  setLoading(false)
-                }
-              }}
-              onChange={(e) => setDeveloperId(e.target.value)}
-            />
-            <Input
-              type="text"
-              placeholder="Enter App ID"
-              className="dark:bg-zinc-700 dark:text-white dark:border-gray-600"
-              autoCapitalize="off"
-              inputMode="numeric"
-              value={appstoreId}
-              onKeyDown={async (e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault()
-                  if (!validateInput("appstoreId", appstoreId)) {
-                    toast.error("Error Processing Input", {
-                      description: "Invalid App ID",
-                      duration: 3500,
-                    })
-                    return
-                  }
-                  setLoading(true)
-                  const respData = await fetchByAppIdOrBundleId("appstoreId", appstoreId, false)
-                  console.log("Response Data:", respData)
-                  setResults(respData)
-                  setViewMode("single")
-                  setFromDeveloperList(false)
-                  setLoading(false)
-                }
-              }}
-              onChange={(e) => setAppStoreId(e.target.value)}
-            />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  type="text"
+                  placeholder="Enter Developer ID"
+                  className="dark:bg-zinc-700 dark:text-white dark:border-gray-600 pr-10"
+                  autoCapitalize="off"
+                  value={developerId}
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      searchByDeveloperId()
+                    }
+                  }}
+                  onChange={(e) => setDeveloperId(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={searchByDeveloperId}
+                disabled={loading}
+                aria-label="Search by Developer ID"
+              >
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
 
-            <Input
-              type="text"
-              placeholder="Enter Bundle ID"
-              className="dark:bg-zinc-700 dark:text-white dark:border-gray-600"
-              autoCapitalize="off"
-              value={bundleId}
-              onKeyDown={async (e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault()
-                  if (!validateInput("bundleId", bundleId)) {
-                    toast.error("Error Processing Input", {
-                      description: "Invalid Bundle ID",
-                      duration: 3500,
-                    })
-                    return
-                  }
-                  setLoading(true)
-                  const respData = await fetchByAppIdOrBundleId("bundleId", bundleId, false)
-                  console.log("Response Data:", respData)
-                  setResults(respData)
-                  setViewMode("single")
-                  setFromDeveloperList(false)
-                  setLoading(false)
-                }
-              }}
-              onChange={(e) => setBundleId(e.target.value)}
-            />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  type="text"
+                  placeholder="Enter App ID"
+                  className="dark:bg-zinc-700 dark:text-white dark:border-gray-600 pr-10"
+                  autoCapitalize="off"
+                  inputMode="numeric"
+                  value={appstoreId}
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      searchByAppId()
+                    }
+                  }}
+                  onChange={(e) => setAppStoreId(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={searchByAppId}
+                disabled={loading}
+                aria-label="Search by App ID"
+              >
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
 
-            <Button className="w-full mt-4" onClick={handleSearch} disabled={loading}>
-              {loading ? "Searching..." : "Search"}
-            </Button>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  type="text"
+                  placeholder="Enter Bundle ID"
+                  className="dark:bg-zinc-700 dark:text-white dark:border-gray-600 pr-10"
+                  autoCapitalize="off"
+                  value={bundleId}
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      searchByBundleId()
+                    }
+                  }}
+                  onChange={(e) => setBundleId(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={searchByBundleId}
+                disabled={loading}
+                aria-label="Search by Bundle ID"
+              >
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
