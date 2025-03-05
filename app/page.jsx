@@ -131,8 +131,8 @@ export default function Home() {
     <div
       className={`flex items-center justify-center min-h-screen p-4 ${isDarkMode ? "dark bg-zinc-950" : "bg-gray-50"}`}
     >
-      <div className="flex flex-col lg:flex-row items-center justify-center gap-6 relative w-full max-w-4xl mx-auto">
-        <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-6 transition-colors duration-200">
+      <div className="flex flex-col lg:flex-row items-center justify-center gap-6 relative w-full mx-auto">
+        <div className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-6 transition-colors duration-200">
           <div className="flex justify-end mb-4 gap-2">
             <a
               href="https://github.com/jasonhe54/SearchBundleID"
@@ -205,7 +205,7 @@ export default function Home() {
         <AnimatePresence>
           {results && (
             <motion.div
-              className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-6 transition-colors duration-200"
+              className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-6 transition-colors duration-200"
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 50 }}
