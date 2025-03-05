@@ -2,14 +2,14 @@
 
 import DataItem from "@/lib/DataItem"
 import { formatBytes, formatDate, validateInput } from "@/lib/helpers"
-import { fetchByAppIdOrBundleId, handleGenericSearch, fetchByDeveloperId } from "@/lib/fetchData"
+import { fetchByAppIdOrBundleId, fetchByDeveloperId } from "@/lib/fetchData"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { toast } from "sonner"
-import { Moon, Sun, ExternalLink, ArrowRight } from 'lucide-react'
+import { Moon, Sun, ExternalLink, ArrowRight } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import GHIcon from "@/components/ui/GHIcon"
@@ -21,13 +21,13 @@ export default function Home() {
   const [bundleId, setBundleId] = useState("")
   const [developerId, setDeveloperId] = useState("")
   const [includeRatings, setIncludeRatings] = useState(false)
-  
+
   // Track which input field is active
   const [activeInput, setActiveInput] = useState(null) // null, "developerId", "appstoreId", "bundleId"
 
   // Track if user came from developer apps list
   const [fromDeveloperList, setFromDeveloperList] = useState(false)
-  
+
   // View state - controls which view is shown
   const [viewMode, setViewMode] = useState("none") // "none", "single", "list"
 
@@ -39,6 +39,44 @@ export default function Home() {
 
   // Dark mode state
   const [isDarkMode, setIsDarkMode] = useState(false)
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        duration: 0.4,
+        ease: "easeInOut",
+        when: "beforeChildren",
+        staggerChildren: 0.1,
+      },
+    },
+    exit: {
+      opacity: 0,
+      transition: {
+        duration: 0.3,
+        ease: "easeInOut",
+        when: "afterChildren",
+        staggerChildren: 0.05,
+        staggerDirection: -1,
+      },
+    },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.3, ease: "easeOut" },
+    },
+    exit: {
+      opacity: 0,
+      y: -20,
+      transition: { duration: 0.2, ease: "easeIn" },
+    },
+  }
 
   // Function to clear results
   const clearResults = () => {
@@ -225,10 +263,10 @@ export default function Home() {
                   disabled={loading || (activeInput !== null && activeInput !== "developerId")}
                 />
               </div>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={searchByDeveloperId} 
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={searchByDeveloperId}
                 disabled={loading || !developerId}
                 aria-label="Search by Developer ID"
               >
@@ -255,10 +293,10 @@ export default function Home() {
                   disabled={loading || (activeInput !== null && activeInput !== "appstoreId")}
                 />
               </div>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={searchByAppId} 
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={searchByAppId}
                 disabled={loading || !appstoreId}
                 aria-label="Search by App ID"
               >
@@ -284,10 +322,10 @@ export default function Home() {
                   disabled={loading || (activeInput !== null && activeInput !== "bundleId")}
                 />
               </div>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={searchByBundleId} 
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={searchByBundleId}
                 disabled={loading || !bundleId}
                 aria-label="Search by Bundle ID"
               >
@@ -297,38 +335,45 @@ export default function Home() {
           </div>
         </div>
 
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
           {viewMode === "single" && results && (
             <motion.div
+              key="single-view"
               className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-6 transition-colors duration-200"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 50 }}
-              transition={{ duration: 0.3 }}
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              layout
             >
-              <div className="flex justify-between items-center mb-6">
+              <motion.div variants={itemVariants} className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold dark:text-white">Results</h2>
                 <div className="flex gap-2">
                   {fromDeveloperList && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => {
-                        setViewMode("list");
-                        setDeveloperApps(cachedDeveloperApps);
-                      }} 
+                        setViewMode("list")
+                        setDeveloperApps(cachedDeveloperApps)
+                      }}
                       className="text-gray-600 dark:text-gray-300"
                     >
                       Back to List
                     </Button>
                   )}
-                  <Button variant="outline" size="sm" onClick={clearResults} className="text-gray-600 dark:text-gray-300">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearResults}
+                    className="text-gray-600 dark:text-gray-300"
+                  >
                     Clear
                   </Button>
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="flex items-start gap-4 mb-6">
+              <motion.div variants={itemVariants} className="flex items-start gap-4 mb-6">
                 {results.icon && (
                   <div className="flex-shrink-0">
                     <Image
@@ -368,9 +413,9 @@ export default function Home() {
                     )}
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="space-y-4 mb-4">
+              <motion.div variants={itemVariants} className="space-y-4 mb-4">
                 <DataItem
                   label="App Store URL"
                   value={results.url}
@@ -426,40 +471,43 @@ export default function Home() {
                   copyable
                   onCopy={() => copyToClipboard(results.primaryGenre)}
                 />
-              </div>
+              </motion.div>
 
               {results.description && (
-                <Accordion type="single" collapsible>
-                  <AccordionItem value="item-1">
-                    <AccordionTrigger>Description</AccordionTrigger>
-                    <AccordionContent className={"text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line"}>
-                      <div className="pb-4">{results.description}</div>
-                      <Button
-                        variant="outline"
-                        className={"w-full"}
-                        onClick={() => {
-                          copyToClipboard(results.description)
-                        }}
-                      >
-                        Copy Description
-                      </Button>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
+                <motion.div variants={itemVariants}>
+                  <Accordion type="single" collapsible>
+                    <AccordionItem value="item-1">
+                      <AccordionTrigger>Description</AccordionTrigger>
+                      <AccordionContent className={"text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line"}>
+                        <div className="pb-4">{results.description}</div>
+                        <Button
+                          variant="outline"
+                          className={"w-full"}
+                          onClick={() => {
+                            copyToClipboard(results.description)
+                          }}
+                        >
+                          Copy Description
+                        </Button>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </motion.div>
               )}
             </motion.div>
           )}
-        </AnimatePresence>
-        <AnimatePresence>
+
           {viewMode === "list" && developerApps && (
             <motion.div
+              key="list-view"
               className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-6 transition-colors duration-200"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 50 }}
-              transition={{ duration: 0.3 }}
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              layout
             >
-              <div className="flex justify-between items-center mb-6">
+              <motion.div variants={itemVariants} className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold dark:text-white">Developer Apps ({developerApps.length})</h2>
                 <Button
                   variant="outline"
@@ -475,12 +523,24 @@ export default function Home() {
                 >
                   Clear
                 </Button>
-              </div>
+              </motion.div>
 
-              <div className="max-h-[600px] overflow-y-auto pr-2">
+              <motion.div variants={itemVariants} className="max-h-[600px] overflow-y-auto pr-2">
                 <div className="space-y-6">
-                  {developerApps.map((app) => (
-                    <div key={app.id} className="border-b dark:border-gray-700 pb-4 last:border-0 last:pb-0">
+                  {developerApps.map((app, index) => (
+                    <motion.div
+                      key={app.id}
+                      className="border-b dark:border-gray-700 pb-4 last:border-0 last:pb-0"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{
+                        opacity: 1,
+                        y: 0,
+                        transition: {
+                          delay: index * 0.05,
+                          duration: 0.3,
+                        },
+                      }}
+                    >
                       <div className="flex items-start gap-4 mb-2">
                         {app.icon && (
                           <div className="flex-shrink-0">
@@ -520,9 +580,9 @@ export default function Home() {
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                setResults(app);
-                                setFromDeveloperList(true);
-                                setViewMode("single");
+                                setResults(app)
+                                setFromDeveloperList(true)
+                                setViewMode("single")
                               }}
                             >
                               View Details
@@ -533,10 +593,10 @@ export default function Home() {
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
