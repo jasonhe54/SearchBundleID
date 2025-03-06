@@ -16,11 +16,9 @@ import GHIcon from "@/components/ui/GHIcon"
 
 export default function Home() {
   // Input state tracking
-  const [appStoreUrl, setAppStoreUrl] = useState("")
   const [appstoreId, setAppStoreId] = useState("")
   const [bundleId, setBundleId] = useState("")
   const [developerId, setDeveloperId] = useState("")
-  const [includeRatings, setIncludeRatings] = useState(false)
 
   // Track which input field is active
   const [activeInput, setActiveInput] = useState(null) // null, "developerId", "appstoreId", "bundleId"
@@ -43,21 +41,23 @@ export default function Home() {
 
   // Animation variants
   const containerVariants = {
-    hidden: { opacity: 0 },
+    hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
+      y: 0,
       transition: {
-        duration: 0.4,
-        ease: "easeInOut",
+        duration: 0.5,
+        ease: "easeOut",
         when: "beforeChildren",
         staggerChildren: 0.1,
       },
     },
     exit: {
       opacity: 0,
+      y: -20,
       transition: {
         duration: 0.3,
-        ease: "easeInOut",
+        ease: "easeIn",
         when: "afterChildren",
         staggerChildren: 0.05,
         staggerDirection: -1,
@@ -66,7 +66,7 @@ export default function Home() {
   }
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 10 },
     visible: {
       opacity: 1,
       y: 0,
@@ -74,19 +74,26 @@ export default function Home() {
     },
     exit: {
       opacity: 0,
-      y: -20,
+      y: -10,
       transition: { duration: 0.2, ease: "easeIn" },
+    },
+  }
+
+  const inputVariants = {
+    hidden: { opacity: 0, x: -10 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.3, ease: "easeOut" },
     },
   }
 
   // Function to clear results
   const clearResults = () => {
     setResults(null)
-    setAppStoreUrl("")
     setAppStoreId("")
     setBundleId("")
     setDeveloperId("")
-    setIncludeRatings(false)
     setLoading(false)
     setLoadingField(null)
     setFromDeveloperList(false)
@@ -249,8 +256,13 @@ export default function Home() {
       className={`flex items-center justify-center min-h-screen p-4 ${isDarkMode ? "dark bg-zinc-950" : "bg-gray-50"}`}
     >
       <div className="flex flex-col lg:flex-row items-center justify-center gap-6 relative w-full mx-auto">
-        <div className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-6 transition-colors duration-200">
-          <div className="flex justify-end mb-4 gap-2">
+        <motion.div
+          className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-6 transition-colors duration-200"
+          initial="hidden"
+          animate="visible"
+          variants={containerVariants}
+        >
+          <motion.div className="flex justify-end mb-4 gap-2" variants={itemVariants}>
             <a href="https://github.com/jasonhe54/SearchBundleID" target="_blank" rel="noreferrer">
               <Button variant="outline" size="icon" aria-label="GitHub Repository">
                 <GHIcon className="h-5 w-5 text-black dark:text-white" />
@@ -260,15 +272,17 @@ export default function Home() {
             <Button variant="outline" size="icon" onClick={toggleDarkMode} aria-label="Toggle dark mode">
               {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
-          </div>
+          </motion.div>
 
-          <h1 className="text-2xl font-bold mb-2 text-center dark:text-white">Bundle Search</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 text-center">
-            Complete a field below to search for an App Store Bundle ID, or an App ID.
-          </p>
+          <motion.h1 className="text-2xl font-bold mb-2 text-center dark:text-white" variants={itemVariants}>
+            Bundle Search
+          </motion.h1>
+          <motion.p className="text-sm text-gray-600 dark:text-gray-300 mb-6 text-center" variants={itemVariants}>
+            Search for App Store apps by Bundle ID, App ID, or get a list of apps by Developer ID.
+          </motion.p>
 
-          <div className="space-y-4">
-            <div className="flex gap-2">
+          <motion.div className="space-y-4" variants={itemVariants}>
+            <motion.div className="flex gap-2" variants={inputVariants}>
               <div className="relative flex-1">
                 <Input
                   type="text"
@@ -299,9 +313,9 @@ export default function Home() {
                   <ArrowRight className="h-4 w-4" />
                 )}
               </Button>
-            </div>
+            </motion.div>
 
-            <div className="flex gap-2">
+            <motion.div className="flex gap-2" variants={inputVariants}>
               <div className="relative flex-1">
                 <Input
                   type="text"
@@ -333,9 +347,9 @@ export default function Home() {
                   <ArrowRight className="h-4 w-4" />
                 )}
               </Button>
-            </div>
+            </motion.div>
 
-            <div className="flex gap-2">
+            <motion.div className="flex gap-2" variants={inputVariants}>
               <div className="relative flex-1">
                 <Input
                   type="text"
@@ -366,9 +380,9 @@ export default function Home() {
                   <ArrowRight className="h-4 w-4" />
                 )}
               </Button>
-            </div>
-          </div>
-        </div>
+            </motion.div>
+          </motion.div>
+        </motion.div>
 
         <AnimatePresence mode="wait">
           {viewMode === "single" && results && (
@@ -410,7 +424,12 @@ export default function Home() {
 
               <motion.div variants={itemVariants} className="flex items-start gap-4 mb-6">
                 {results.icon && (
-                  <div className="flex-shrink-0">
+                  <motion.div
+                    className="flex-shrink-0"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
                     <Image
                       src={results.icon || "/placeholder.svg"}
                       alt={results.title || "App icon"}
@@ -418,7 +437,7 @@ export default function Home() {
                       height={80}
                       className="rounded-xl"
                     />
-                  </div>
+                  </motion.div>
                 )}
                 <div className="flex-grow">
                   <div className="flex justify-between items-start">
@@ -578,7 +597,12 @@ export default function Home() {
                     >
                       <div className="flex items-start gap-4 mb-2">
                         {app.icon && (
-                          <div className="flex-shrink-0">
+                          <motion.div
+                            className="flex-shrink-0"
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.3, delay: index * 0.05 + 0.1 }}
+                          >
                             <Image
                               src={app.icon || "/placeholder.svg"}
                               alt={app.title || "App icon"}
@@ -586,7 +610,7 @@ export default function Home() {
                               height={60}
                               className="rounded-xl"
                             />
-                          </div>
+                          </motion.div>
                         )}
                         <div className="flex-grow">
                           <div className="flex justify-between items-start">

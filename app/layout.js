@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "BundleSearch",
-  description: "Search iOS Apps by App Store ID or Bundle ID",
+  description: "Search for App Store apps by Bundle ID, App ID, or get a list of apps by Developer ID.",
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon.ico",
@@ -22,7 +22,7 @@ export const metadata = {
   },
   openGraph: {
     title: 'BundleSearch',
-    description: 'Search iOS Apps by App Store ID or Bundle ID',
+    description: 'Search for App Store apps by Bundle ID, App ID, or get a list of apps by Developer ID.',
     url: 'https://bundlesearch.he54.me',
     siteName: 'BundleSearch',
     images: [
