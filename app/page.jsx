@@ -120,9 +120,13 @@ export default function Home() {
     setLoading(true)
     const respData = await fetchByDeveloperId(developerId)
     console.log("Response Data:", respData)
-    setDeveloperApps(respData)
-    setCachedDeveloperApps(respData)
-    setViewMode("list")
+
+    if (respData && respData.data) {
+      setDeveloperApps(respData.data)
+      setCachedDeveloperApps(respData.data)
+      setViewMode("list")
+    }
+
     setLoading(false)
   }
 
