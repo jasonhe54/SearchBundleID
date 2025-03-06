@@ -21,6 +21,7 @@ export async function POST(request) {
       }
   
       const itunesData = await response.json()
+      let developerName = itunesData.results[0].artistName
   
       // The first result is usually the developer info, not an app
       // Filter to only include apps and format the data to match our expected structure
@@ -47,6 +48,7 @@ export async function POST(request) {
         }))
   
       const respJSON = {
+        developerName: developerName,
         data: apps,
         error: null,
       }
