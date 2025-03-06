@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { toast } from "sonner"
-import { Moon, Sun, ExternalLink, ArrowRight } from "lucide-react"
+import { Moon, Sun, ExternalLink, ArrowRight, Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import GHIcon from "@/components/ui/GHIcon"
@@ -34,6 +34,7 @@ export default function Home() {
   // Results state
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [loadingField, setLoadingField] = useState(null) // Track which field is loading
   const [developerApps, setDeveloperApps] = useState(null)
   const [cachedDeveloperApps, setCachedDeveloperApps] = useState(null)
 
@@ -87,6 +88,7 @@ export default function Home() {
     setDeveloperId("")
     setIncludeRatings(false)
     setLoading(false)
+    setLoadingField(null)
     setFromDeveloperList(false)
     setViewMode("none")
     setCachedDeveloperApps(null)
@@ -118,16 +120,21 @@ export default function Home() {
       return
     }
     setLoading(true)
-    const respData = await fetchByDeveloperId(developerId)
-    console.log("Response Data:", respData)
+    setLoadingField("developerId")
 
-    if (respData && respData.data) {
-      setDeveloperApps(respData.data)
-      setCachedDeveloperApps(respData.data)
-      setViewMode("list")
+    try {
+      const respData = await fetchByDeveloperId(developerId)
+      console.log("Response Data:", respData)
+
+      if (respData && respData.data) {
+        setDeveloperApps(respData.data)
+        setCachedDeveloperApps(respData.data)
+        setViewMode("list")
+      }
+    } finally {
+      setLoading(false)
+      setLoadingField(null)
     }
-
-    setLoading(false)
   }
 
   // Search by App ID
@@ -140,12 +147,18 @@ export default function Home() {
       return
     }
     setLoading(true)
-    const respData = await fetchByAppIdOrBundleId("appstoreId", appstoreId, false)
-    console.log("Response Data:", respData)
-    setResults(respData)
-    setViewMode("single")
-    setFromDeveloperList(false)
-    setLoading(false)
+    setLoadingField("appstoreId")
+
+    try {
+      const respData = await fetchByAppIdOrBundleId("appstoreId", appstoreId, false)
+      console.log("Response Data:", respData)
+      setResults(respData)
+      setViewMode("single")
+      setFromDeveloperList(false)
+    } finally {
+      setLoading(false)
+      setLoadingField(null)
+    }
   }
 
   // Search by Bundle ID
@@ -158,12 +171,18 @@ export default function Home() {
       return
     }
     setLoading(true)
-    const respData = await fetchByAppIdOrBundleId("bundleId", bundleId, false)
-    console.log("Response Data:", respData)
-    setResults(respData)
-    setViewMode("single")
-    setFromDeveloperList(false)
-    setLoading(false)
+    setLoadingField("bundleId")
+
+    try {
+      const respData = await fetchByAppIdOrBundleId("bundleId", bundleId, false)
+      console.log("Response Data:", respData)
+      setResults(respData)
+      setViewMode("single")
+      setFromDeveloperList(false)
+    } finally {
+      setLoading(false)
+      setLoadingField(null)
+    }
   }
 
   // Toggle dark mode
@@ -274,7 +293,11 @@ export default function Home() {
                 disabled={loading || !developerId}
                 aria-label="Search by Developer ID"
               >
-                <ArrowRight className="h-4 w-4" />
+                {loadingField === "developerId" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ArrowRight className="h-4 w-4" />
+                )}
               </Button>
             </div>
 
@@ -304,7 +327,11 @@ export default function Home() {
                 disabled={loading || !appstoreId}
                 aria-label="Search by App ID"
               >
-                <ArrowRight className="h-4 w-4" />
+                {loadingField === "appstoreId" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ArrowRight className="h-4 w-4" />
+                )}
               </Button>
             </div>
 
@@ -333,7 +360,11 @@ export default function Home() {
                 disabled={loading || !bundleId}
                 aria-label="Search by Bundle ID"
               >
-                <ArrowRight className="h-4 w-4" />
+                {loadingField === "bundleId" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ArrowRight className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </div>
