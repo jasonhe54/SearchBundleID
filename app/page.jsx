@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { toast } from "sonner"
-import { Moon, Sun, ExternalLink, ArrowRight, Loader2 } from "lucide-react"
+import { Moon, Sun, ExternalLink, ArrowRight, Loader2, Clock, X } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import GHIcon from "@/components/ui/GHIcon"
@@ -38,6 +38,9 @@ export default function Home() {
 
   // Dark mode state
   const [isDarkMode, setIsDarkMode] = useState(false)
+
+  // New state for search history
+  const [searchHistory, setSearchHistory] = useState([])
 
   // Animation variants
   const containerVariants = {
@@ -117,9 +120,75 @@ export default function Home() {
       })
   }
 
+  // Load search history from localStorage on component mount
+  useEffect(() => {
+    const storedHistory = localStorage.getItem('searchHistory')
+    if (storedHistory) {
+      try {
+        setSearchHistory(JSON.parse(storedHistory))
+      } catch (error) {
+        console.error('Failed to parse search history:', error)
+        // Reset if corrupted
+        localStorage.removeItem('searchHistory')
+      }
+    }
+  }, [])
+
+  // Save search to history
+  const saveToHistory = (searchType, query, appInfo = null) => {
+    const timestamp = new Date().toISOString()
+    const newSearch = {
+      id: `${timestamp}-${Math.random().toString(36).substr(2, 9)}`,
+      type: searchType,
+      query,
+      timestamp,
+      appInfo: appInfo ? {
+        title: appInfo.title,
+        bundleId: appInfo.appId,
+        appId: appInfo.id,
+      } : null
+    }
+    
+    const updatedHistory = [newSearch, ...searchHistory.slice(0, 19)] // Keep only most recent 20 items
+    setSearchHistory(updatedHistory)
+    localStorage.setItem('searchHistory', JSON.stringify(updatedHistory))
+  }
+
+  // Clear search history
+  const clearHistory = () => {
+    setSearchHistory([])
+    localStorage.removeItem('searchHistory')
+    toast.success("Search history cleared")
+  }
+
+  // Remove single history item
+  const removeHistoryItem = (id) => {
+    const updatedHistory = searchHistory.filter(item => item.id !== id)
+    setSearchHistory(updatedHistory)
+    localStorage.setItem('searchHistory', JSON.stringify(updatedHistory))
+  }
+
+  // Reuse a search from history
+  const useHistoryItem = (item) => {
+    if (item.type === "developerId") {
+      setDeveloperId(item.query)
+      setActiveInput("developerId")
+      searchByDeveloperId(item.query)
+    } else if (item.type === "appstoreId") {
+      setAppStoreId(item.query)
+      setActiveInput("appstoreId")
+      searchByAppId(item.query)
+    } else if (item.type === "bundleId") {
+      setBundleId(item.query)
+      setActiveInput("bundleId")
+      searchByBundleId(item.query)
+    }
+  }
+
   // Search by developer ID
-  const searchByDeveloperId = async () => {
-    if (!validateInput("developerId", developerId)) {
+  const searchByDeveloperId = async (forcedQuery = null) => {
+    const query = forcedQuery || developerId
+    if (!validateInput("developerId", query)) {
       toast.error("Error Processing Input", {
         description: "Invalid Developer ID",
         duration: 3500,
@@ -130,13 +199,15 @@ export default function Home() {
     setLoadingField("developerId")
 
     try {
-      const respData = await fetchByDeveloperId(developerId)
+      const respData = await fetchByDeveloperId(query)
       console.log("Response Data:", respData)
 
       if (respData && respData.data) {
         setDeveloperApps(respData.data)
         setCachedDeveloperApps(respData.data)
         setViewMode("list")
+        // Save to history after successful search
+        saveToHistory("developerId", query)
       }
     } finally {
       setLoading(false)
@@ -145,8 +216,9 @@ export default function Home() {
   }
 
   // Search by App ID
-  const searchByAppId = async () => {
-    if (!validateInput("appstoreId", appstoreId)) {
+  const searchByAppId = async (forcedQuery = null) => {
+    const query = forcedQuery || appstoreId
+    if (!validateInput("appstoreId", query)) {
       toast.error("Error Processing Input", {
         description: "Invalid App ID",
         duration: 3500,
@@ -157,11 +229,13 @@ export default function Home() {
     setLoadingField("appstoreId")
 
     try {
-      const respData = await fetchByAppIdOrBundleId("appstoreId", appstoreId, false)
+      const respData = await fetchByAppIdOrBundleId("appstoreId", query, false)
       console.log("Response Data:", respData)
       setResults(respData)
       setViewMode("single")
       setFromDeveloperList(false)
+      // Save to history after successful search
+      saveToHistory("appstoreId", query, respData)
     } finally {
       setLoading(false)
       setLoadingField(null)
@@ -169,8 +243,9 @@ export default function Home() {
   }
 
   // Search by Bundle ID
-  const searchByBundleId = async () => {
-    if (!validateInput("bundleId", bundleId)) {
+  const searchByBundleId = async (forcedQuery = null) => {
+    const query = forcedQuery || bundleId
+    if (!validateInput("bundleId", query)) {
       toast.error("Error Processing Input", {
         description: "Invalid Bundle ID",
         duration: 3500,
@@ -181,11 +256,13 @@ export default function Home() {
     setLoadingField("bundleId")
 
     try {
-      const respData = await fetchByAppIdOrBundleId("bundleId", bundleId, false)
+      const respData = await fetchByAppIdOrBundleId("bundleId", query, false)
       console.log("Response Data:", respData)
       setResults(respData)
       setViewMode("single")
       setFromDeveloperList(false)
+      // Save to history after successful search
+      saveToHistory("bundleId", query, respData)
     } finally {
       setLoading(false)
       setLoadingField(null)
@@ -248,6 +325,27 @@ export default function Home() {
       setActiveInput("bundleId")
     } else if (activeInput === "bundleId") {
       setActiveInput(null)
+    }
+  }
+
+  // Format date for display in history
+  const formatHistoryDate = (dateString) => {
+    const date = new Date(dateString)
+    return date.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  // Return search type label
+  const getSearchTypeLabel = (type) => {
+    switch(type) {
+      case "developerId": return "Developer ID"
+      case "appstoreId": return "App ID"
+      case "bundleId": return "Bundle ID"
+      default: return "Search"
     }
   }
 
@@ -380,6 +478,78 @@ export default function Home() {
                   <ArrowRight className="h-4 w-4" />
                 )}
               </Button>
+            </motion.div>
+          </motion.div>
+          
+          <motion.div 
+            className="mt-6 pt-4 border-t dark:border-gray-700"
+            variants={itemVariants}
+          >
+            <motion.div className="flex justify-between items-center mb-2" variants={itemVariants}>
+              <motion.h3 className="text-sm font-semibold dark:text-white" variants={itemVariants}>
+                Search History
+              </motion.h3>
+              {searchHistory.length > 0 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={clearHistory} 
+                  className="h-7 px-2 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  Clear All
+                </Button>
+              )}
+            </motion.div>
+            
+            <motion.div
+              className="max-h-[120px] overflow-y-auto pr-2 text-xs text-gray-600 dark:text-gray-300"
+              variants={itemVariants}
+            >
+              {searchHistory.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-4 text-gray-400">
+                  <Clock className="h-4 w-4 mb-1" />
+                  <p>No recent searches</p>
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {searchHistory.map((item) => (
+                    <li 
+                      key={item.id} 
+                      className="pb-1 border-b dark:border-gray-700 flex justify-between items-center"
+                    >
+                      <button 
+                        className="flex-1 flex items-start text-left hover:bg-gray-50 dark:hover:bg-gray-800 rounded px-1 py-0.5"
+                        onClick={() => useHistoryItem(item)}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-1">
+                            <span className="font-medium">{getSearchTypeLabel(item.type)}:</span> 
+                            <span className="truncate">{item.query}</span>
+                          </div>
+                          {item.appInfo?.title && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                              {item.appInfo.title}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">
+                          {formatHistoryDate(item.timestamp)}
+                        </span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeHistoryItem(item.id);
+                        }}
+                        className="ml-1 p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        aria-label="Remove from history"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </motion.div>
           </motion.div>
         </motion.div>
