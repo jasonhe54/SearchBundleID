@@ -471,11 +471,7 @@ const CombinedView = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setDeveloperApps(null)
-                  setCachedDeveloperApps(null)
-                  setDeveloperId("")
-                  setViewMode("none")
-                  setActiveInput(null)
+                  clearResults()
                 }}
                 className="text-gray-600 dark:text-gray-300"
               >
