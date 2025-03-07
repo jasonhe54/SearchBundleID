@@ -75,6 +75,11 @@ const SearchHistory = ({ searchHistory, clearHistory, removeHistoryItem }) => {
                         {item.appInfo.title}
                       </div>
                     )}
+                    {item.appInfo?.name && item.appInfo?.id && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {item.appInfo.name}
+                      </div>
+                    )}
                   </div>
                   <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">
                     {formatHistoryDate(item.timestamp)}
