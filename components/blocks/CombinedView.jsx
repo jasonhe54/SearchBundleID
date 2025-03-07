@@ -1,11 +1,13 @@
-import { AnimatePresence, motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+"use client"
+
+import { AnimatePresence, motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
+import { ExternalLink } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import Image from "next/image";
-import { containerVariants, itemVariants } from "@/lib/animations";
-import DataItem from "@/lib/DataItem";
-import { formatBytes, formatDate } from "@/lib/helpers";
+import Image from "next/image"
+import { containerVariants, itemVariants } from "@/lib/animations"
+import DataItem from "@/lib/DataItem"
+import { formatBytes, formatDate } from "@/lib/helpers"
 
 const CombinedView = ({
   viewMode,
@@ -22,6 +24,7 @@ const CombinedView = ({
   setActiveInput,
   clearResults,
   copyToClipboard,
+  returnToSearch,
 }) => {
   return (
     <AnimatePresence mode="wait">
@@ -38,6 +41,9 @@ const CombinedView = ({
           <motion.div variants={itemVariants} className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold dark:text-white">Results</h2>
             <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={returnToSearch} className="text-gray-600 dark:text-gray-300">
+                Back to Search
+              </Button>
               {fromDeveloperList && (
                 <Button
                   variant="outline"
@@ -48,12 +54,7 @@ const CombinedView = ({
                   Back to List
                 </Button>
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearResults}
-                className="text-gray-600 dark:text-gray-300"
-              >
+              <Button variant="outline" size="sm" onClick={clearResults} className="text-gray-600 dark:text-gray-300">
                 Clear
               </Button>
             </div>
@@ -107,24 +108,9 @@ const CombinedView = ({
           </motion.div>
 
           <motion.div variants={itemVariants} className="space-y-4 mb-4">
-            <DataItem
-              label="App Store URL"
-              value={results.url}
-              copyable
-              onCopy={() => copyToClipboard(results.url)}
-            />
-            <DataItem
-              label="Bundle ID"
-              value={results.appId}
-              copyable
-              onCopy={() => copyToClipboard(results.appId)}
-            />
-            <DataItem 
-              label="App ID" 
-              value={results.id} 
-              copyable 
-              onCopy={() => copyToClipboard(results.id)} 
-            />
+            <DataItem label="App Store URL" value={results.url} copyable onCopy={() => copyToClipboard(results.url)} />
+            <DataItem label="Bundle ID" value={results.appId} copyable onCopy={() => copyToClipboard(results.appId)} />
+            <DataItem label="App ID" value={results.id} copyable onCopy={() => copyToClipboard(results.id)} />
             <DataItem
               label="Developer ID"
               value={results.developerId}
@@ -180,7 +166,7 @@ const CombinedView = ({
                       variant="outline"
                       className={"w-full"}
                       onClick={() => {
-                        copyToClipboard(results.description);
+                        copyToClipboard(results.description)
                       }}
                     >
                       Copy Description
@@ -205,20 +191,25 @@ const CombinedView = ({
         >
           <motion.div variants={itemVariants} className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold dark:text-white">Developer Apps ({developerApps.length})</h2>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setDeveloperApps(null);
-                setCachedDeveloperApps(null);
-                setDeveloperId("");
-                setViewMode("none");
-                setActiveInput(null);
-              }}
-              className="text-gray-600 dark:text-gray-300"
-            >
-              Clear
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={returnToSearch} className="text-gray-600 dark:text-gray-300">
+                Back to Search
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setDeveloperApps(null)
+                  setCachedDeveloperApps(null)
+                  setDeveloperId("")
+                  setViewMode("none")
+                  setActiveInput(null)
+                }}
+                className="text-gray-600 dark:text-gray-300"
+              >
+                Clear
+              </Button>
+            </div>
           </motion.div>
 
           <motion.div variants={itemVariants} className="max-h-[600px] overflow-y-auto pr-2">
@@ -281,9 +272,9 @@ const CombinedView = ({
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            setResults(app);
-                            setFromDeveloperList(true);
-                            setViewMode("single");
+                            setResults(app)
+                            setFromDeveloperList(true)
+                            setViewMode("single")
                           }}
                         >
                           View Details
@@ -301,7 +292,8 @@ const CombinedView = ({
         </motion.div>
       )}
     </AnimatePresence>
-  );
-};
+  )
+}
 
-export default CombinedView;
+export default CombinedView
+

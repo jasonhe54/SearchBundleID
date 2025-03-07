@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 
 // Components
 import SearchPanel from "@/components/blocks/SearchPanel"
@@ -11,9 +11,6 @@ import CombinedView from "@/components/blocks/CombinedView"
 import { fetchByAppIdOrBundleId, fetchByDeveloperId } from "@/lib/fetchData"
 import { validateInput } from "@/lib/helpers"
 import { toast } from "sonner"
-
-// Animation variants
-import { containerVariants } from "@/lib/animations"
 
 export default function Home() {
   // Input state tracking
@@ -43,6 +40,9 @@ export default function Home() {
   // Search history state
   const [searchHistory, setSearchHistory] = useState([])
 
+  // Search visibility state
+  const [isSearchVisible, setIsSearchVisible] = useState(true)
+
   // Function to clear results
   const clearResults = () => {
     setResults(null)
@@ -55,6 +55,13 @@ export default function Home() {
     setViewMode("none")
     setCachedDeveloperApps(null)
     setActiveInput(null)
+    setIsSearchVisible(true) // Show search panel when clearing results
+  }
+
+  // Function to return to search view
+  const returnToSearch = () => {
+    clearResults()
+    setIsSearchVisible(true)
   }
 
   // Function to copy text to clipboard
@@ -74,13 +81,13 @@ export default function Home() {
 
   // Load search history from localStorage on component mount
   useEffect(() => {
-    const storedHistory = localStorage.getItem('searchHistory')
+    const storedHistory = localStorage.getItem("searchHistory")
     if (storedHistory) {
       try {
         setSearchHistory(JSON.parse(storedHistory))
       } catch (error) {
-        console.error('Failed to parse search history:', error)
-        localStorage.removeItem('searchHistory')
+        console.error("Failed to parse search history:", error)
+        localStorage.removeItem("searchHistory")
       }
     }
   }, [])
@@ -92,54 +99,56 @@ export default function Home() {
       type: searchType,
       query,
       timestamp,
-      appInfo: appInfo ? {
-        title: appInfo.title,
-        bundleId: appInfo.appId,
-        appId: appInfo.id,
-      } : null
+      appInfo: appInfo
+        ? {
+            title: appInfo.title,
+            bundleId: appInfo.appId,
+            appId: appInfo.id,
+          }
+        : null,
     }
-    
+
     const updatedHistory = [newSearch, ...searchHistory.slice(0, 19)]
     setSearchHistory(updatedHistory)
-    localStorage.setItem('searchHistory', JSON.stringify(updatedHistory))
+    localStorage.setItem("searchHistory", JSON.stringify(updatedHistory))
   }
 
   // Clear search history
   const clearHistory = () => {
     setSearchHistory([])
-    localStorage.removeItem('searchHistory')
+    localStorage.removeItem("searchHistory")
     toast.success("Search history cleared")
   }
 
   // Remove single history item
   const removeHistoryItem = (id) => {
-    const updatedHistory = searchHistory.filter(item => item.id !== id)
+    const updatedHistory = searchHistory.filter((item) => item.id !== id)
     setSearchHistory(updatedHistory)
-    localStorage.setItem('searchHistory', JSON.stringify(updatedHistory))
+    localStorage.setItem("searchHistory", JSON.stringify(updatedHistory))
   }
 
   // Add a helper function to clear search inputs except for the active one
   const clearSearchInputs = (activeType = null, preserveResults = false) => {
     // Only clear results if not preserving them
     if (!preserveResults) {
-      setResults(null);
+      setResults(null)
     }
-    
-    setFromDeveloperList(false);
-    
+
+    setFromDeveloperList(false)
+
     // Clear inputs except for the active one
-    if (activeType !== "developerId") setDeveloperId("");
-    if (activeType !== "appstoreId") setAppStoreId("");
-    if (activeType !== "bundleId") setBundleId("");
-    
+    if (activeType !== "developerId") setDeveloperId("")
+    if (activeType !== "appstoreId") setAppStoreId("")
+    if (activeType !== "bundleId") setBundleId("")
+
     // Always set the active input
-    setActiveInput(activeType);
-    setLoadingField(activeType);
+    setActiveInput(activeType)
+    setLoadingField(activeType)
   }
 
   // Search by developer ID
   const searchByDeveloperId = async (searchHistoryQuery = null) => {
-    let query = searchHistoryQuery || developerId
+    const query = searchHistoryQuery || developerId
 
     console.log("Searching by Developer ID:", query)
     if (!validateInput("developerId", query)) {
@@ -149,8 +158,8 @@ export default function Home() {
       })
       return
     }
-    
-    clearSearchInputs("developerId");
+
+    clearSearchInputs("developerId")
     setLoading(true)
     setLoadingField("developerId")
 
@@ -163,6 +172,11 @@ export default function Home() {
         setCachedDeveloperApps(respData.data)
         setViewMode("list")
         saveToHistory("developerId", query)
+
+        // Add a slight delay for smoother transition
+        setTimeout(() => {
+          setIsSearchVisible(false)
+        }, 100)
       }
     } finally {
       setLoading(false)
@@ -172,7 +186,7 @@ export default function Home() {
 
   // Search by App ID
   const searchByAppId = async (searchHistoryQuery = null) => {
-    let query = searchHistoryQuery || appstoreId
+    const query = searchHistoryQuery || appstoreId
 
     if (!validateInput("appstoreId", query)) {
       toast.error("Error Processing Input", {
@@ -181,8 +195,8 @@ export default function Home() {
       })
       return
     }
-    
-    clearSearchInputs("appstoreId");
+
+    clearSearchInputs("appstoreId")
     setLoading(true)
     setLoadingField("appstoreId")
 
@@ -193,6 +207,11 @@ export default function Home() {
       setViewMode("single")
       setFromDeveloperList(false)
       saveToHistory("appstoreId", query, respData)
+
+      // Add a slight delay for smoother transition
+      setTimeout(() => {
+        setIsSearchVisible(false)
+      }, 100)
     } finally {
       setLoading(false)
       setLoadingField(null)
@@ -201,7 +220,7 @@ export default function Home() {
 
   // Search by Bundle ID
   const searchByBundleId = async (searchHistoryQuery = null) => {
-    let query = searchHistoryQuery || bundleId
+    const query = searchHistoryQuery || bundleId
 
     if (!validateInput("bundleId", query)) {
       toast.error("Error Processing Input", {
@@ -210,8 +229,8 @@ export default function Home() {
       })
       return
     }
-    
-    clearSearchInputs("bundleId");
+
+    clearSearchInputs("bundleId")
     setLoading(true)
     setLoadingField("bundleId")
 
@@ -222,6 +241,10 @@ export default function Home() {
       setViewMode("single")
       setFromDeveloperList(false)
       saveToHistory("bundleId", query, respData)
+
+      setTimeout(() => {
+        setIsSearchVisible(false)
+      }, 100)
     } finally {
       setLoading(false)
       setLoadingField(null)
@@ -291,51 +314,60 @@ export default function Home() {
     <div
       className={`flex items-center justify-center min-h-screen p-4 ${isDarkMode ? "dark bg-zinc-950" : "bg-gray-50"}`}
     >
-      <div className="flex flex-col lg:flex-row items-center justify-center gap-6 relative w-full mx-auto">
-        <motion.div
-          className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-6 transition-colors duration-200"
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-        >
-          <SearchPanel
-            appstoreId={appstoreId}
-            bundleId={bundleId}
-            developerId={developerId}
-            activeInput={activeInput}
-            loading={loading}
-            loadingField={loadingField}
-            isDarkMode={isDarkMode}
-            searchHistory={searchHistory}
-            handleDeveloperIdChange={handleDeveloperIdChange}
-            handleAppIdChange={handleAppIdChange}
-            handleBundleIdChange={handleBundleIdChange}
-            searchByDeveloperId={searchByDeveloperId}
-            searchByAppId={searchByAppId}
-            searchByBundleId={searchByBundleId}
-            toggleDarkMode={toggleDarkMode}
-            clearHistory={clearHistory}
-            removeHistoryItem={removeHistoryItem}
-          />
-        </motion.div>
+      <AnimatePresence mode="sync">
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-6 relative w-full mx-auto">
+          {isSearchVisible && (
+            <motion.div
+              className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-lg shadow-sm p-6 transition-colors duration-200"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20, transition: { duration: 0.2 } }}
+              transition={{ duration: 0.3 }}
+              layout
+            >
+              <SearchPanel
+                appstoreId={appstoreId}
+                bundleId={bundleId}
+                developerId={developerId}
+                activeInput={activeInput}
+                loading={loading}
+                loadingField={loadingField}
+                isDarkMode={isDarkMode}
+                searchHistory={searchHistory}
+                handleDeveloperIdChange={handleDeveloperIdChange}
+                handleAppIdChange={handleAppIdChange}
+                handleBundleIdChange={handleBundleIdChange}
+                searchByDeveloperId={searchByDeveloperId}
+                searchByAppId={searchByAppId}
+                searchByBundleId={searchByBundleId}
+                toggleDarkMode={toggleDarkMode}
+                clearHistory={clearHistory}
+                removeHistoryItem={removeHistoryItem}
+              />
+            </motion.div>
+          )}
 
-        <CombinedView
-          viewMode={viewMode}
-          results={results}
-          developerApps={developerApps}
-          fromDeveloperList={fromDeveloperList}
-          setViewMode={setViewMode}
-          setDeveloperApps={setDeveloperApps}
-          cachedDeveloperApps={cachedDeveloperApps}
-          setCachedDeveloperApps={setCachedDeveloperApps}
-          setDeveloperId={setDeveloperId}
-          setResults={setResults}
-          setFromDeveloperList={setFromDeveloperList}
-          setActiveInput={setActiveInput}
-          clearResults={clearResults}
-          copyToClipboard={copyToClipboard}
-        />
-      </div>
+          <CombinedView
+            viewMode={viewMode}
+            results={results}
+            developerApps={developerApps}
+            fromDeveloperList={fromDeveloperList}
+            setViewMode={setViewMode}
+            setDeveloperApps={setDeveloperApps}
+            cachedDeveloperApps={cachedDeveloperApps}
+            setCachedDeveloperApps={setCachedDeveloperApps}
+            setDeveloperId={setDeveloperId}
+            setResults={setResults}
+            setFromDeveloperList={setFromDeveloperList}
+            setActiveInput={setActiveInput}
+            clearResults={clearResults}
+            copyToClipboard={copyToClipboard}
+            returnToSearch={returnToSearch}
+            isSearchVisible={isSearchVisible}
+          />
+        </div>
+      </AnimatePresence>
     </div>
   )
 }
+
