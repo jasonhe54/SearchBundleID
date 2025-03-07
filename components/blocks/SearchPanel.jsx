@@ -77,7 +77,9 @@ const SearchPanel = ({
           <Button
             variant="outline"
             size="icon"
-            onClick={() => searchByDeveloperId()}
+            onClick={() => {
+                searchByDeveloperId()  
+            }}
             disabled={loading || !developerId}
             aria-label="Search by Developer ID"
           >
@@ -111,7 +113,9 @@ const SearchPanel = ({
           <Button
             variant="outline"
             size="icon"
-            onClick={() => searchByAppId()}
+            onClick={() => {
+                searchByAppId()
+            }}
             disabled={loading || !appstoreId}
             aria-label="Search by App ID"
           >
@@ -144,7 +148,9 @@ const SearchPanel = ({
           <Button
             variant="outline"
             size="icon"
-            onClick={() => searchByBundleId()}
+            onClick={() => {
+                searchByBundleId()
+            }}
             disabled={loading || !bundleId}
             aria-label="Search by Bundle ID"
           >

@@ -1,12 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AnimatePresence, motion } from "framer-motion"
+import { motion } from "framer-motion"
 
 // Components
 import SearchPanel from "@/components/blocks/SearchPanel"
-import ResultView from "@/components/blocks/ResultView"
-import DeveloperAppsList from "@/components/blocks/DeveloperAppsList"
+import CombinedView from "@/components/blocks/CombinedView"
 
 // Helpers
 import { fetchByAppIdOrBundleId, fetchByDeveloperId } from "@/lib/fetchData"
@@ -320,33 +319,22 @@ export default function Home() {
           />
         </motion.div>
 
-        <AnimatePresence mode="sync">
-          {viewMode === "single" && results && (
-            <ResultView
-              results={results}
-              fromDeveloperList={fromDeveloperList}
-              clearResults={clearResults}
-              copyToClipboard={copyToClipboard}
-              setViewMode={setViewMode}
-              setDeveloperApps={setDeveloperApps}
-              cachedDeveloperApps={cachedDeveloperApps}
-            />
-          )}
-
-          {viewMode === "list" && developerApps && (
-            <DeveloperAppsList
-              developerApps={developerApps}
-              setDeveloperApps={setDeveloperApps}
-              setCachedDeveloperApps={setCachedDeveloperApps}
-              setDeveloperId={setDeveloperId}
-              setViewMode={setViewMode}
-              setResults={setResults}
-              setFromDeveloperList={setFromDeveloperList}
-              setActiveInput={setActiveInput}
-              copyToClipboard={copyToClipboard}
-            />
-          )}
-        </AnimatePresence>
+        <CombinedView
+          viewMode={viewMode}
+          results={results}
+          developerApps={developerApps}
+          fromDeveloperList={fromDeveloperList}
+          setViewMode={setViewMode}
+          setDeveloperApps={setDeveloperApps}
+          cachedDeveloperApps={cachedDeveloperApps}
+          setCachedDeveloperApps={setCachedDeveloperApps}
+          setDeveloperId={setDeveloperId}
+          setResults={setResults}
+          setFromDeveloperList={setFromDeveloperList}
+          setActiveInput={setActiveInput}
+          clearResults={clearResults}
+          copyToClipboard={copyToClipboard}
+        />
       </div>
     </div>
   )
