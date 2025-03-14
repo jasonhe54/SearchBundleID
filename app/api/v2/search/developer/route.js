@@ -61,7 +61,7 @@ export async function POST(request) {
             size: app.size || "",
             released: app.releaseDate,
             updated: app.lastUpdated,
-            requiredOsVersion: app.requiredOsVersion || "",
+            requiredOsVersion: app.minimumOsVersion || "",
             primaryGenre: app.genre,
             contentRating: app.contentRating,
         }))
