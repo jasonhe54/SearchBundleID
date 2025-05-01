@@ -1,9 +1,8 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { itemVariants } from "@/lib/animations"
 import AppItem from "@/components/search/AppItem"
 import Pagination from "@/components/search/Pagination"
@@ -17,78 +16,125 @@ export default function DeveloperAppsList({
   setViewMode,
   copyToClipboard,
 }) {
+  // Allow user to choose items per page
+  const [itemsPerPage, setItemsPerPage] = useState(20)
+  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(20)
   const [paginatedApps, setPaginatedApps] = useState([])
+  
+  // Memoize processed apps to avoid recalculation on every render
+  const processedDevApps = useMemo(() => {
+    if (!Array.isArray(developerApps)) return [];
+    
+    // Process all apps without limiting to 50
+    return developerApps.map((app, index) => {
+      // Only ensure we have an ID for React keys
+      return {
+        ...app,
+        id: app.id || app.appId?.toString() || `app-${index}`
+      };
+    });
+  }, [developerApps]);
 
   // Calculate total pages
-  const totalPages = developerApps ? Math.ceil(developerApps.length / itemsPerPage) : 0
+  const totalPages = Math.max(1, Math.ceil(processedDevApps.length / itemsPerPage));
 
   // Update paginated apps when page changes or developer apps change
   useEffect(() => {
-    if (developerApps) {
-      const startIndex = (currentPage - 1) * itemsPerPage
-      const endIndex = startIndex + itemsPerPage
-      setPaginatedApps(developerApps.slice(startIndex, endIndex))
-
-      // Save current page to localStorage
+    if (processedDevApps.length > 0) {
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      setPaginatedApps(processedDevApps.slice(startIndex, endIndex));
+      
+      // Save current page and items per page to localStorage
       try {
-        localStorage.setItem("developerAppsPage", currentPage.toString())
-        localStorage.setItem("developerAppsPerPage", itemsPerPage.toString())
+        localStorage.setItem("developerAppsPage", currentPage.toString());
+        localStorage.setItem("developerAppsPerPage", itemsPerPage.toString());
       } catch (error) {
-        console.error("Failed to save pagination state to localStorage:", error)
+        console.error("Failed to save pagination state to localStorage:", error);
       }
+    } else {
+      setPaginatedApps([]);
     }
-  }, [currentPage, developerApps, itemsPerPage])
+  }, [currentPage, processedDevApps, itemsPerPage]);
 
   // Load pagination preferences from localStorage on mount
   useEffect(() => {
     try {
-      const savedPage = localStorage.getItem("developerAppsPage")
-      const savedItemsPerPage = localStorage.getItem("developerAppsPerPage")
-
+      const savedPage = localStorage.getItem("developerAppsPage");
+      const savedItemsPerPage = localStorage.getItem("developerAppsPerPage");
+      
       if (savedPage) {
-        setCurrentPage(Number.parseInt(savedPage, 10))
+        const parsedPage = Number.parseInt(savedPage, 10);
+        if (!isNaN(parsedPage) && parsedPage > 0) {
+          setCurrentPage(parsedPage);
+        }
       }
-
+      
       if (savedItemsPerPage) {
-        setItemsPerPage(Number.parseInt(savedItemsPerPage, 10))
+        const parsedItems = Number.parseInt(savedItemsPerPage, 10);
+        if (!isNaN(parsedItems) && parsedItems > 0) {
+          setItemsPerPage(parsedItems);
+        }
       }
     } catch (error) {
-      console.error("Failed to load pagination state from localStorage:", error)
+      console.error("Failed to load pagination state from localStorage:", error);
     }
-  }, [])
+  }, []);
 
   // Reset to page 1 when developer apps change
   useEffect(() => {
-    if (developerApps) {
-      setCurrentPage(1)
-    }
-  }, [developerApps])
+    setCurrentPage(1);
+  }, [developerApps]);
 
   // Handle page change
   const handlePageChange = useCallback((newPage) => {
     // Smooth scroll to top of list
-    const listElement = document.getElementById("developer-apps-list")
+    const listElement = document.getElementById("developer-apps-list");
     if (listElement) {
-      listElement.scrollTo({ top: 0, behavior: "smooth" })
+      listElement.scrollTo({ top: 0, behavior: "smooth" });
     }
+    setCurrentPage(newPage);
+  }, []);
 
-    setCurrentPage(newPage)
-  }, [])
+  // Handle items per page change using simple buttons to avoid Select component issues
+  const handleItemsPerPageChange = useCallback((newValue) => {
+    setItemsPerPage(newValue);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  }, []);
 
-  // Handle items per page change
-  const handleItemsPerPageChange = useCallback((value) => {
-    const newItemsPerPage = Number.parseInt(value, 10)
-    setItemsPerPage(newItemsPerPage)
-    setCurrentPage(1) // Reset to first page when changing items per page
-  }, [])
+  // Display empty state if no apps
+  if (!processedDevApps || processedDevApps.length === 0) {
+    return (
+      <>
+        <motion.div variants={itemVariants} className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold dark:text-white">Developer Apps (0)</h2>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={returnToSearch}
+              className="text-gray-600 dark:text-gray-300 transition-all duration-300 hover:scale-105"
+            >
+              Back to Search
+            </Button>
+            <Button variant="outline" size="sm" onClick={clearResults} className="text-gray-600 dark:text-gray-300">
+              Clear
+            </Button>
+          </div>
+        </motion.div>
+        <motion.div variants={itemVariants} className="text-center py-12">
+          <p className="text-gray-500 dark:text-gray-400">No apps found for this developer.</p>
+        </motion.div>
+      </>
+    )
+  }
 
   return (
     <>
       <motion.div variants={itemVariants} className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold dark:text-white">Developer Apps ({developerApps.length})</h2>
+        <h2 className="text-xl font-bold dark:text-white">Developer Apps ({processedDevApps.length})</h2>
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -104,26 +150,27 @@ export default function DeveloperAppsList({
         </div>
       </motion.div>
 
-      {/* Items per page selector using shadcn/ui Select */}
-      <div className="flex justify-end mb-4">
-        <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
-          <SelectTrigger className="w-[180px] h-10 px-4 py-2 bg-background text-sm font-medium border border-input rounded-md ring-offset-background hover:bg-accent hover:text-accent-foreground">
-            <SelectValue placeholder="Items per page" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="10">10 per page</SelectItem>
-            <SelectItem value="20">20 per page</SelectItem>
-            <SelectItem value="50">50 per page</SelectItem>
-            <SelectItem value="100">100 per page</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Simple button-based items per page selector */}
+      <div className="flex justify-end mb-4 gap-2">
+        <span className="text-sm text-gray-500 flex items-center mr-2">Items per page:</span>
+        {[10, 20, 50, 100].map(value => (
+          <Button
+            key={value}
+            variant={itemsPerPage === value ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleItemsPerPageChange(value)}
+            className="h-8 px-3 text-xs"
+          >
+            {value}
+          </Button>
+        ))}
       </div>
 
       <motion.div id="developer-apps-list" variants={itemVariants} className="max-h-[500px] overflow-y-auto pr-2">
         <div className="space-y-6">
           {paginatedApps.map((app, index) => (
             <AppItem
-              key={app.id}
+              key={app.id || `app-${index}`}
               app={app}
               index={index}
               setResults={setResults}

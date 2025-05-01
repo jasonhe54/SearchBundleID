@@ -3,81 +3,116 @@
 import { memo } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { ExternalLink } from "lucide-react"
+import { ArrowRight, Clipboard } from "lucide-react"
+import { formatDate, formatBytes } from "@/lib/helpers"
 import Image from "next/image"
 
-// Memoized app item component to prevent unnecessary re-renders
-const AppItem = memo(({ app, index, setResults, setFromDeveloperList, setViewMode, copyToClipboard }) => {
+// Simple version of AppItem that shows app size and avoids re-render issues
+const AppItem = memo(function AppItem({ app, index, setResults, setFromDeveloperList, setViewMode, copyToClipboard }) {
+  if (!app) return null;
+
+  // Handle view details click
+  function handleViewDetails() {
+    setResults(app)
+    setFromDeveloperList(true)
+    setViewMode("single")
+  }
+
+  // Handle copy click
+  function handleCopy(e) {
+    e.stopPropagation()
+    const idToCopy = app.appId || app.bundleId || "";
+    copyToClipboard(idToCopy)
+  }
+
+  // Extract display values with fallbacks
+  const displayTitle = app.title || app.appName || "Unknown App";
+  const displayIcon = app.icon || app.artworkUrl512;
+  const displayVersion = app.version || "";
+  const displayDate = app.updated || app.lastUpdated || "";
+  const isFree = app.free === true || app.price === 0;
+  const displayPrice = isFree ? "Free" : (app.price ? `$${app.price}` : "");
+  const displayRating = app.contentRating || "";
+  const displayGenre = app.primaryGenre || app.genre || "";
+  
+  // Get app size data with fallbacks
+  const fileSizeBytes = app.size || app.fileSizeBytes || 0;
+  const displaySize = formatBytes(fileSizeBytes);
+
   return (
     <motion.div
-      key={app.id}
-      className="border-b dark:border-gray-700 pb-4 last:border-0 last:pb-0"
+      className="border dark:border-zinc-700 rounded-lg p-4 flex items-start gap-4 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+      onClick={handleViewDetails}
       initial={{ opacity: 0, y: 20 }}
-      animate={{
-        opacity: 1,
-        y: 0,
-        transition: {
-          delay: Math.min(index * 0.03, 0.3), // Cap the delay to prevent too much staggering
-          duration: 0.3,
-        },
-      }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05, duration: 0.3 }}
     >
-      <div className="flex items-start gap-4 mb-2">
-        {app.icon && (
-          <motion.div
-            className="flex-shrink-0"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.3) + 0.1 }}
-          >
-            <Image
-              src={app.icon || "/placeholder.svg"}
-              alt={app.title || "App icon"}
-              width={60}
-              height={60}
-              className="rounded-xl"
-            />
-          </motion.div>
-        )}
-        <div className="flex-grow">
-          <div className="flex justify-between items-start">
-            <h3 className="text-lg font-semibold dark:text-white">{app.title}</h3>
-            <div className="ml-auto flex gap-0">
-              <Button variant="ghost" size="icon" onClick={() => window.open(app.url, "_blank")} className="h-8 w-8">
-                <ExternalLink className="h-4 w-4" />
-              </Button>
-            </div>
+      {displayIcon ? (
+        <Image
+          src={displayIcon}
+          alt={displayTitle}
+          width={60}
+          height={60}
+          className="rounded-lg"
+          unoptimized={true}
+        />
+      ) : (
+        <div className="w-[60px] h-[60px] rounded-lg bg-gray-200 dark:bg-zinc-700 flex items-center justify-center">
+          <span className="text-2xl">📱</span>
+        </div>
+      )}
+
+      <div className="flex-grow">
+        <div className="flex justify-between items-start">
+          <h3 className="font-bold text-base dark:text-white">{displayTitle}</h3>
+          <div className="flex gap-1 ml-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-7 h-7"
+              onClick={handleCopy}
+              title="Copy Bundle ID"
+            >
+              <Clipboard className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="w-7 h-7">
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-            <span className="truncate max-w-[200px]">{app.appId}</span>
-            {app.free !== undefined && (
-              <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded-full text-xs">
-                {app.free ? "Free" : `$${app.price}`}
+        </div>
+
+        <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs">
+              {displayVersion ? `v${displayVersion}` : ""} • Updated: {formatDate(displayDate)}
+            </span>
+            {displaySize !== "0 B" && (
+              <span className="text-xs ml-2">
+                {displaySize}
               </span>
             )}
           </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setResults(app)
-                setFromDeveloperList(true)
-                setViewMode("single")
-              }}
-            >
-              View Details
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => copyToClipboard(app.appId)}>
-              Copy Bundle ID
-            </Button>
+          <div className="flex items-center gap-2 mt-1">
+            {displayPrice && (
+              <span className="px-2 py-0.5 bg-gray-100 dark:bg-zinc-700 rounded-full text-xs">
+                {displayPrice}
+              </span>
+            )}
+            {displayRating && (
+              <span className="px-2 py-0.5 bg-gray-100 dark:bg-zinc-700 rounded-full text-xs">
+                {displayRating}
+              </span>
+            )}
+            {displayGenre && (
+              <span className="px-2 py-0.5 bg-gray-100 dark:bg-zinc-700 rounded-full text-xs">
+                {displayGenre}
+              </span>
+            )}
           </div>
         </div>
       </div>
     </motion.div>
   )
 })
-
-AppItem.displayName = "AppItem"
 
 export default AppItem

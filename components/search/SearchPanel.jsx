@@ -13,9 +13,6 @@ import { Moon, Sun, ArrowRight, Loader2 } from "lucide-react"
 import { itemVariants, inputVariants } from "@/lib/animations"
 import SearchHistory from "@/components/search/SearchHistory"
 
-// Cache expiration time (10 minutes)
-const CACHE_EXPIRATION = 10 * 60 * 1000
-
 export default function SearchPanel() {
   const {
     appstoreId,
@@ -105,40 +102,7 @@ export default function SearchPanel() {
     [activeInput, setActiveInput, setBundleId],
   )
 
-  // Check localStorage for cached developer apps
-  const checkCachedDeveloperApps = useCallback((developerId) => {
-    try {
-      const cachedData = localStorage.getItem(`developerApps_${developerId}`)
-      if (cachedData) {
-        const { data, timestamp } = JSON.parse(cachedData)
-        // Check if cache is still valid
-        if (Date.now() - timestamp < CACHE_EXPIRATION) {
-          return data
-        } else {
-          // Cache expired, remove it
-          localStorage.removeItem(`developerApps_${developerId}`)
-        }
-      }
-    } catch (error) {
-      console.error("Error reading from localStorage:", error)
-    }
-    return null
-  }, [])
-
-  // Save developer apps to localStorage
-  const cacheDeveloperApps = useCallback((developerId, data) => {
-    try {
-      const cacheData = {
-        data,
-        timestamp: Date.now(),
-      }
-      localStorage.setItem(`developerApps_${developerId}`, JSON.stringify(cacheData))
-    } catch (error) {
-      console.error("Error saving to localStorage:", error)
-    }
-  }, [])
-
-  // Search by developer ID with caching
+  // Search by developer ID
   const searchByDeveloperId = useCallback(
     async (searchHistoryQuery = null) => {
       const query = searchHistoryQuery || developerId
@@ -157,38 +121,22 @@ export default function SearchPanel() {
       setLoadingField("developerId")
 
       try {
-        // Check localStorage cache first
-        const cachedData = checkCachedDeveloperApps(query)
-
-        if (cachedData) {
-          console.log("Using cached developer apps data")
-          setDeveloperApps(cachedData)
-          setCachedDeveloperApps(cachedData)
+        // Client-side fetch implementation
+        const respData = await fetchByDeveloperId(query)
+        console.log("Developer search response:", respData)
+        
+        if (respData && respData.data) {
+          setDeveloperApps(respData.data)
+          setCachedDeveloperApps(respData.data)
           setViewMode("list")
-          const historyJSONFormat = {
-            developerName: cachedData[0].developer,
+          saveToHistory("developerId", query, {
+            developerName: respData.developerName,
             developerId: query,
-          }
-          saveToHistory("developerId", query, historyJSONFormat)
+          })
         } else {
-          // Fetch from API if not in cache
-          const respData = await fetchByDeveloperId(query)
-          console.log("Response Data:", respData)
-
-          if (respData && respData.data) {
-            setDeveloperApps(respData.data)
-            setCachedDeveloperApps(respData.data)
-            setViewMode("list")
-            saveToHistory("developerId", query, {
-              developerName: respData.developerName,
-              developerId: query,
-            })
-
-            // Cache the data in localStorage
-            cacheDeveloperApps(query, respData.data)
-          }
+          throw new Error("Failed to fetch developer apps")
         }
-      } catch {
+      } catch (error) {
         toast.error("Error Processing Input", {
           description: "Invalid Developer ID, given: " + query,
           duration: 3500,
@@ -200,8 +148,6 @@ export default function SearchPanel() {
       }
     },
     [
-      cacheDeveloperApps,
-      checkCachedDeveloperApps,
       clearSearchInputs,
       developerId,
       saveToHistory,
@@ -231,17 +177,20 @@ export default function SearchPanel() {
       setLoadingField("appstoreId")
 
       try {
+        // Client-side fetch implementation
         const respData = await fetchByAppIdOrBundleId("appstoreId", query, false)
-        console.log("Response Data:", respData)
-        setResults(respData)
-        setViewMode("single")
-        setFromDeveloperList(false)
-
+        console.log("App ID search response:", respData)
+        
         if (respData) {
-          // ensures the API call succeeds
+          // The response is already formatted for SingleAppView
+          setResults(respData)
+          setViewMode("single")
+          setFromDeveloperList(false)
           saveToHistory("appstoreId", query, respData)
+        } else {
+          throw new Error("Failed to fetch app data")
         }
-      } catch {
+      } catch (error) {
         toast.error("Error Processing Input", {
           description: "Invalid App ID, given: " + query,
           duration: 3500,
@@ -282,16 +231,20 @@ export default function SearchPanel() {
       setLoadingField("bundleId")
 
       try {
+        // Client-side fetch implementation
         const respData = await fetchByAppIdOrBundleId("bundleId", query, false)
-        console.log("Response Data for Bundle ID Search:", respData)
-        setResults(respData)
-        setViewMode("single")
-        setFromDeveloperList(false)
-
+        console.log("Bundle ID search response:", respData)
+        
         if (respData) {
+          // The response is already formatted for SingleAppView
+          setResults(respData)
+          setViewMode("single")
+          setFromDeveloperList(false)
           saveToHistory("bundleId", query, respData)
+        } else {
+          throw new Error("Failed to fetch app data")
         }
-      } catch {
+      } catch (error) {
         toast.error("Error Processing Input", {
           description: "Invalid Bundle ID, given: " + query,
           duration: 3500,
