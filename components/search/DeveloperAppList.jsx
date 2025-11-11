@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useCallback, useEffect, useMemo } from "react"
+import { useState, useCallback, useEffect, useMemo, useRef } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { itemVariants } from "@/lib/animations"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Grid3x3, List, X } from "lucide-react"
 import AppItem from "@/components/search/AppItem"
 import Pagination from "@/components/search/Pagination"
 
@@ -15,63 +17,49 @@ export default function DeveloperAppsList({
   setFromDeveloperList,
   setViewMode,
   copyToClipboard,
+  setDeveloperApps,
 }) {
-  // Allow user to choose items per page
   const [itemsPerPage, setItemsPerPage] = useState(20)
-  
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [paginatedApps, setPaginatedApps] = useState([])
+  const [displayMode, setDisplayMode] = useState("list")
   
-  // Memoize processed apps to avoid recalculation on every render
   const processedDevApps = useMemo(() => {
     if (!Array.isArray(developerApps)) return [];
-    
-    // Process all apps without limiting to 50
-    return developerApps.map((app, index) => {
-      // Only ensure we have an ID for React keys
-      return {
-        ...app,
-        id: app.id || app.appId?.toString() || `app-${index}`
-      };
-    });
+    return developerApps.map((app, index) => ({
+      ...app,
+      id: app.id || app.appId?.toString() || `app-${index}`
+    }));
   }, [developerApps]);
 
-  // Calculate total pages
   const totalPages = Math.max(1, Math.ceil(processedDevApps.length / itemsPerPage));
 
-  // Update paginated apps when page changes or developer apps change
   useEffect(() => {
     if (processedDevApps.length > 0) {
       const startIndex = (currentPage - 1) * itemsPerPage;
       const endIndex = startIndex + itemsPerPage;
       setPaginatedApps(processedDevApps.slice(startIndex, endIndex));
-      
-      // Save current page and items per page to localStorage
       try {
         localStorage.setItem("developerAppsPage", currentPage.toString());
         localStorage.setItem("developerAppsPerPage", itemsPerPage.toString());
       } catch (error) {
-        console.error("Failed to save pagination state to localStorage:", error);
+        console.error("Failed to save pagination state:", error);
       }
     } else {
       setPaginatedApps([]);
     }
   }, [currentPage, processedDevApps, itemsPerPage]);
 
-  // Load pagination preferences from localStorage on mount
   useEffect(() => {
     try {
       const savedPage = localStorage.getItem("developerAppsPage");
       const savedItemsPerPage = localStorage.getItem("developerAppsPerPage");
-      
       if (savedPage) {
         const parsedPage = Number.parseInt(savedPage, 10);
         if (!isNaN(parsedPage) && parsedPage > 0) {
           setCurrentPage(parsedPage);
         }
       }
-      
       if (savedItemsPerPage) {
         const parsedItems = Number.parseInt(savedItemsPerPage, 10);
         if (!isNaN(parsedItems) && parsedItems > 0) {
@@ -79,113 +67,184 @@ export default function DeveloperAppsList({
         }
       }
     } catch (error) {
-      console.error("Failed to load pagination state from localStorage:", error);
+      console.error("Failed to load pagination state:", error);
     }
   }, []);
 
-  // Reset to page 1 when developer apps change
   useEffect(() => {
     setCurrentPage(1);
   }, [developerApps]);
 
-  // Handle page change
-  const handlePageChange = useCallback((newPage) => {
-    // Smooth scroll to top of list
-    const listElement = document.getElementById("developer-apps-list");
-    if (listElement) {
-      listElement.scrollTo({ top: 0, behavior: "smooth" });
+  // Scroll to top when page changes (but not on initial mount)
+  const isInitialMount = useRef(true);
+  const headerRef = useRef(null);
+  
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
     }
+    // Scroll immediately, then smooth scroll after a brief delay
+    const mainElement = document.querySelector("main");
+    if (mainElement) {
+      // Instant scroll first to ensure we're at the top
+      mainElement.scrollTo({ top: 0, behavior: "auto" });
+      
+      // Then do a smooth scroll after content updates
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          mainElement.scrollTo({ top: 0, behavior: "smooth" });
+        }, 50);
+      });
+    }
+  }, [currentPage]);
+
+  const handlePageChange = useCallback((newPage) => {
     setCurrentPage(newPage);
+    // Scroll immediately when button is clicked
+    setTimeout(() => {
+      const mainElement = document.querySelector("main");
+      if (mainElement) {
+        mainElement.scrollTo({ top: 0, behavior: "auto" });
+      }
+    }, 0);
   }, []);
 
-  // Handle items per page change using simple buttons to avoid Select component issues
   const handleItemsPerPageChange = useCallback((newValue) => {
     setItemsPerPage(newValue);
-    setCurrentPage(1); // Reset to first page when changing items per page
+    setCurrentPage(1);
+    // Scroll the main scrollable container to the top after state update
+    setTimeout(() => {
+      const mainElement = document.querySelector("main");
+      if (mainElement) {
+        mainElement.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }, 0);
   }, []);
 
-  // Display empty state if no apps
   if (!processedDevApps || processedDevApps.length === 0) {
     return (
-      <>
-        <motion.div variants={itemVariants} className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold dark:text-white">Developer Apps (0)</h2>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={returnToSearch}
-              className="text-gray-600 dark:text-gray-300 transition-all duration-300 hover:scale-105"
-            >
-              Back to Search
-            </Button>
-            <Button variant="outline" size="sm" onClick={clearResults} className="text-gray-600 dark:text-gray-300">
-              Clear
-            </Button>
+      <div className="space-y-6">
+        <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4 -mx-4 md:-mx-6 px-4 md:px-6 pt-4 md:pt-6 -mt-4 md:-mt-6 flex items-center justify-between border-b border-border/40">
+          <div>
+            <h1 className="text-2xl font-semibold">Developer Apps</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">No apps found</p>
           </div>
-        </motion.div>
-        <motion.div variants={itemVariants} className="text-center py-12">
-          <p className="text-gray-500 dark:text-gray-400">No apps found for this developer.</p>
-        </motion.div>
-      </>
+          <Button variant="ghost" size="icon" onClick={clearResults} className="h-9 w-9">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <Card className="border-border/40">
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">No apps found for this developer.</p>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
   return (
-    <>
-      <motion.div variants={itemVariants} className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold dark:text-white">Developer Apps ({processedDevApps.length})</h2>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={returnToSearch}
-            className="text-gray-600 dark:text-gray-300 transition-all duration-300 hover:scale-105"
-          >
-            Back to Search
-          </Button>
-          <Button variant="outline" size="sm" onClick={clearResults} className="text-gray-600 dark:text-gray-300">
-            Clear
+    <div className="space-y-6">
+      {/* Header */}
+      <div ref={headerRef} className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4 -mx-4 md:-mx-6 px-4 md:px-6 pt-4 md:pt-6 -mt-4 md:-mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border/40">
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold">
+              Developer Apps
+              <Badge variant="secondary" className="ml-2 text-xs">
+                {processedDevApps.length}
+              </Badge>
+            </h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Browse all apps from this developer</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 border border-border/40 rounded-md p-0.5">
+            <Button
+              variant={displayMode === "grid" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setDisplayMode("grid")}
+              className="h-7 px-2"
+            >
+              <Grid3x3 className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant={displayMode === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setDisplayMode("list")}
+              className="h-7 px-2"
+            >
+              <List className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          <Button variant="ghost" size="icon" onClick={clearResults} className="h-9 w-9">
+            <X className="h-4 w-4" />
           </Button>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Simple button-based items per page selector */}
-      <div className="flex justify-end mb-4 gap-2">
-        <span className="text-sm text-gray-500 flex items-center mr-2">Items per page:</span>
-        {[10, 20, 50, 100].map(value => (
-          <Button
-            key={value}
-            variant={itemsPerPage === value ? "default" : "outline"}
-            size="sm"
-            onClick={() => handleItemsPerPageChange(value)}
-            className="h-8 px-3 text-xs"
-          >
-            {value}
-          </Button>
+      {/* Controls */}
+      <Card className="border-border/40">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground">Items per page:</span>
+              {[10, 20, 50, 100].map(value => (
+                <Button
+                  key={value}
+                  variant={itemsPerPage === value ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleItemsPerPageChange(value)}
+                  className="h-7 px-3 text-xs"
+                >
+                  {value}
+                </Button>
+              ))}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, processedDevApps.length)} of {processedDevApps.length}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Apps List/Grid */}
+      <div
+        id="developer-apps-list"
+        className={displayMode === "grid" 
+          ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+          : "space-y-3"
+        }
+      >
+        {paginatedApps.map((app, index) => (
+          <AppItem
+            key={app.id || `app-${index}`}
+            app={app}
+            index={index}
+            setResults={(app) => {
+              setResults(app)
+              setDeveloperApps(null)
+            }}
+            setFromDeveloperList={setFromDeveloperList}
+            setViewMode={setViewMode}
+            copyToClipboard={copyToClipboard}
+            viewMode={displayMode}
+          />
         ))}
       </div>
 
-      <motion.div id="developer-apps-list" variants={itemVariants} className="max-h-[500px] overflow-y-auto pr-2">
-        <div className="space-y-6">
-          {paginatedApps.map((app, index) => (
-            <AppItem
-              key={app.id || `app-${index}`}
-              app={app}
-              index={index}
-              setResults={setResults}
-              setFromDeveloperList={setFromDeveloperList}
-              setViewMode={setViewMode}
-              copyToClipboard={copyToClipboard}
-            />
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Pagination controls */}
+      {/* Pagination */}
       {totalPages > 1 && (
-        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
+        <Card className="border-border/40">
+          <CardContent className="p-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
+          </CardContent>
+        </Card>
       )}
-    </>
+    </div>
   )
 }

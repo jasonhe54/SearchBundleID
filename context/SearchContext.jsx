@@ -113,7 +113,13 @@ export function SearchProvider({ children }) {
                     break;
             }
 
-            const updatedHistory = [newSearchRecord, ...searchHistory.slice(0, 19)]
+            // De-duplicate: remove existing entries with same query and type
+            const deduplicatedHistory = searchHistory.filter(
+                (item) => !(item.query === query && item.type === searchType)
+            )
+
+            // Add new record at the top and limit to 20 items
+            const updatedHistory = [newSearchRecord, ...deduplicatedHistory.slice(0, 19)]
             setSearchHistory(updatedHistory)
             localStorage.setItem("searchHistory", JSON.stringify(updatedHistory))
         },
