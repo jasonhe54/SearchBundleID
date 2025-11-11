@@ -8,37 +8,20 @@ const SearchContext = createContext(null)
 const CACHE_EXPIRATION = 30 * 60 * 1000
 
 export function SearchProvider({ children }) {
-    // Input state tracking
     const [appstoreId, setAppStoreId] = useState("")
     const [bundleId, setBundleId] = useState("")
     const [developerId, setDeveloperId] = useState("")
-
-    // Track which input field is active
-    const [activeInput, setActiveInput] = useState(null) // null, "developerId", "appstoreId", "bundleId"
-
-    // Track if user came from developer apps list
+    const [activeInput, setActiveInput] = useState(null)
     const [fromDeveloperList, setFromDeveloperList] = useState(false)
-
-    // View state - controls which view is shown
-    const [viewMode, setViewMode] = useState("none") // "none", "single", "list"
-
-    // Results state
+    const [viewMode, setViewMode] = useState("none")
     const [results, setResults] = useState(null)
     const [loading, setLoading] = useState(false)
-    const [loadingField, setLoadingField] = useState(null) // Track which field is loading
+    const [loadingField, setLoadingField] = useState(null)
     const [developerApps, setDeveloperApps] = useState(null)
     const [cachedDeveloperApps, setCachedDeveloperApps] = useState(null)
-
-    // Dark mode state
     const [isDarkMode, setIsDarkMode] = useState(false)
-
-    // Search history state
     const [searchHistory, setSearchHistory] = useState([])
-
-    // Search visibility state
     const [isSearchVisible, setIsSearchVisible] = useState(true)
-
-    // Load search history from localStorage on component mount
     useEffect(() => {
         const storedHistory = localStorage.getItem("searchHistory")
         if (storedHistory) {
@@ -51,7 +34,6 @@ export function SearchProvider({ children }) {
         }
     }, [])
 
-    // set theme in localStorage upon page load
     useEffect(() => {
         const storedTheme = localStorage.getItem("theme")
         if (storedTheme === "dark") {
@@ -64,7 +46,6 @@ export function SearchProvider({ children }) {
         }
     }, [])
 
-    // handles applying classes to document and updates localStorage when state is toggled
     useEffect(() => {
         if (isDarkMode) {
             document.documentElement.classList.add("dark")
@@ -74,7 +55,6 @@ export function SearchProvider({ children }) {
         localStorage.setItem("theme", isDarkMode ? "dark" : "light")
     }, [isDarkMode])
 
-    // function to save to history
     const saveToHistory = useCallback(
         (searchType, query, appInfo = null) => {
             console.log(appInfo)
@@ -113,12 +93,10 @@ export function SearchProvider({ children }) {
                     break;
             }
 
-            // De-duplicate: remove existing entries with same query and type
             const deduplicatedHistory = searchHistory.filter(
                 (item) => !(item.query === query && item.type === searchType)
             )
 
-            // Add new record at the top and limit to 20 items
             const updatedHistory = [newSearchRecord, ...deduplicatedHistory.slice(0, 19)]
             setSearchHistory(updatedHistory)
             localStorage.setItem("searchHistory", JSON.stringify(updatedHistory))
@@ -126,36 +104,29 @@ export function SearchProvider({ children }) {
         [searchHistory, setSearchHistory],
     )
 
-    // add a helper function to clear search inputs except for the active one
     const clearSearchInputs = useCallback(
         (activeType = null, preserveResults = false) => {
-            // only clear results if not preserving them
             if (!preserveResults) {
                 setResults(null)
             }
 
             setFromDeveloperList(false)
 
-            // clear inputs except for the active one
             if (activeType !== "developerId") setDeveloperId("")
             if (activeType !== "appstoreId") setAppStoreId("")
             if (activeType !== "bundleId") setBundleId("")
 
-            // always set the active input
             setActiveInput(activeType)
             setLoadingField(activeType)
         },
         [setActiveInput, setBundleId, setDeveloperId, setFromDeveloperList, setLoadingField, setResults, setAppStoreId],
     )
 
-    // helper to manage localStorage storage usage
     const manageLocalStorageSpace = useCallback(() => {
         try {
-            // check if localStorage is getting full (using 80% of quota as threshold)
-            const maxSize = 5 * 1024 * 1024 // 5MB is a common limit
+            const maxSize = 5 * 1024 * 1024
             let totalSize = 0
 
-            // calculate current usage
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i)
                 if (key) {
@@ -163,11 +134,9 @@ export function SearchProvider({ children }) {
                 }
             }
 
-            // if we're using more than 80% of quota, clean up old developer app caches
             if (totalSize > 0.8 * maxSize) {
                 console.log("LocalStorage is getting full, cleaning up old caches")
 
-                // Get all developer app cache keys and their timestamps
                 const cacheKeys = []
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i)
@@ -176,19 +145,16 @@ export function SearchProvider({ children }) {
                             const data = JSON.parse(localStorage.getItem(key) || "{}")
                             cacheKeys.push({ key, timestamp: data.timestamp || 0 })
                         } catch (e) {
-                            // Invalid JSON, remove it
                             localStorage.removeItem(key)
                         }
                     }
                 }
 
-                // Sort by timestamp (oldest first) and remove oldest entries until we're under 50% usage
                 cacheKeys.sort((a, b) => a.timestamp - b.timestamp)
 
                 for (const { key } of cacheKeys) {
                     localStorage.removeItem(key)
 
-                    // Recalculate size after each removal
                     let newSize = 0
                     for (let i = 0; i < localStorage.length; i++) {
                         const k = localStorage.key(i)
@@ -197,7 +163,6 @@ export function SearchProvider({ children }) {
                         }
                     }
 
-                    // Stop if we're under 50% usage
                     if (newSize < 0.5 * maxSize) {
                         break
                     }
@@ -208,7 +173,6 @@ export function SearchProvider({ children }) {
         }
     }, [])
 
-    // Run storage management on mount
     useEffect(() => {
         manageLocalStorageSpace()
     }, [manageLocalStorageSpace])
@@ -245,7 +209,6 @@ export function SearchProvider({ children }) {
             isSearchVisible,
             setIsSearchVisible,
 
-            // Helper functions
             saveToHistory,
             clearSearchInputs,
             manageLocalStorageSpace,

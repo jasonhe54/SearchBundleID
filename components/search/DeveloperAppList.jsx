@@ -75,7 +75,6 @@ export default function DeveloperAppsList({
     setCurrentPage(1);
   }, [developerApps]);
 
-  // Scroll to top when page changes (but not on initial mount)
   const isInitialMount = useRef(true);
   const headerRef = useRef(null);
   
@@ -84,13 +83,10 @@ export default function DeveloperAppsList({
       isInitialMount.current = false;
       return;
     }
-    // Scroll immediately, then smooth scroll after a brief delay
     const mainElement = document.querySelector("main");
     if (mainElement) {
-      // Instant scroll first to ensure we're at the top
       mainElement.scrollTo({ top: 0, behavior: "auto" });
       
-      // Then do a smooth scroll after content updates
       requestAnimationFrame(() => {
         setTimeout(() => {
           mainElement.scrollTo({ top: 0, behavior: "smooth" });
@@ -101,7 +97,6 @@ export default function DeveloperAppsList({
 
   const handlePageChange = useCallback((newPage) => {
     setCurrentPage(newPage);
-    // Scroll immediately when button is clicked
     setTimeout(() => {
       const mainElement = document.querySelector("main");
       if (mainElement) {
@@ -113,7 +108,6 @@ export default function DeveloperAppsList({
   const handleItemsPerPageChange = useCallback((newValue) => {
     setItemsPerPage(newValue);
     setCurrentPage(1);
-    // Scroll the main scrollable container to the top after state update
     setTimeout(() => {
       const mainElement = document.querySelector("main");
       if (mainElement) {

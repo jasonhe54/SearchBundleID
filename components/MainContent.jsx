@@ -40,7 +40,6 @@ export default function MainContent() {
     clearResults()
   }, [clearResults])
 
-  // Empty state
   if (!results && !developerApps) {
     return (
       <div className="flex items-center justify-center min-h-[300px] md:min-h-[calc(100vh-3.5rem)] p-6">
@@ -66,7 +65,6 @@ export default function MainContent() {
     )
   }
 
-  // Show single app view
   if (results && !developerApps) {
     return (
       <div className="p-4 md:p-6">
@@ -82,7 +80,6 @@ export default function MainContent() {
     )
   }
 
-  // Show developer apps list
   if (developerApps && !results) {
     return (
       <div className="p-4 md:p-6">

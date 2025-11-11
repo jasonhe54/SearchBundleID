@@ -16,17 +16,11 @@ function detectSearchType(query) {
 
   const trimmed = query.trim()
 
-  // Bundle ID: contains dots (e.g., com.apple.mobilemail)
   if (trimmed.includes(".") && /^[a-zA-Z0-9.-]+$/.test(trimmed)) {
     return "bundleId"
   }
 
-  // App ID: typically 9 digits (but can vary)
-  // Developer ID: numeric but format can vary
-  // We'll try App ID first (more common), then Developer ID
   if (/^\d+$/.test(trimmed)) {
-    // If it's all numeric, try App ID first
-    // If App ID search fails, we can fall back to Developer ID
     return "appstoreId"
   }
 
@@ -130,10 +124,8 @@ export default function Sidebar() {
             return
           }
 
-          // If App ID didn't return results, try Developer ID
           console.log("App ID search returned no results, trying Developer ID...")
           if (!validateInput("developerId", trimmed)) {
-            // If it's not a valid Developer ID either, show error
             toast.error("No results found", {
               description: `No app found with ID "${trimmed}". It doesn't match a valid Developer ID format.`,
               duration: 3500,
@@ -150,7 +142,6 @@ export default function Sidebar() {
               developerId: trimmed,
             })
           } else {
-            // Both attempts failed, show a combined error
             toast.error("No results found", {
               description: `No app or developer found with ID "${trimmed}"`,
               duration: 3500,
@@ -158,7 +149,6 @@ export default function Sidebar() {
           }
         }
       } catch (error) {
-        // Error toast already shown by fetch functions
         return
       } finally {
         setLoading(false)
@@ -184,7 +174,6 @@ export default function Sidebar() {
     [performSearch],
   )
 
-  // Get search type hint
   const getSearchHint = () => {
     if (!searchQuery) return "Enter App ID, Developer ID, or Bundle ID"
     if (detectedType === "bundleId") return "Bundle ID detected"
