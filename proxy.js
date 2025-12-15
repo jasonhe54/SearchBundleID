@@ -12,7 +12,7 @@ const ratelimit = new Ratelimit({
   limiter: Ratelimit.slidingWindow(10, "30 s"),
 });
 
-export default async function middleware(request, event) {
+export default async function proxy(request, event) {
   const ip = request.ip;
   const { success, pending, limit, reset, remaining } = await ratelimit.limit(ip);
 
